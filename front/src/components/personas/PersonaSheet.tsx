@@ -38,7 +38,7 @@ const personaSchema = z.object({
     nombres: z.string().min(2, "Nombres son obligatorios"),
     apellido_paterno: z.string().min(2, "Apellido Paterno es obligatorio"),
     apellido_materno: z.string().min(2, "Apellido Materno es obligatorio"),
-    sexo: z.enum(['M', 'F'], { required_error: "Seleccione sexo" }),
+    sexo: z.string().min(1, "Seleccione sexo"),
     fecha_nacimiento: z.string().optional().or(z.literal("")),
     telefono: z.string().max(9, "Max 9 dígitos").optional().or(z.literal("")),
     direccion: z.string().optional().or(z.literal("")),
@@ -325,8 +325,8 @@ export function PersonaSheet({
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
-                                    />
-                            )}
+                                )}
+                            />
 
                             <FormField
                                 control={form.control}
