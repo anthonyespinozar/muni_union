@@ -1,0 +1,12 @@
+# Evitar subir el backup de la base de datos
+backup.sql
+
+# Carpetas de dependencias
+node_modules/
+
+# Archivos de entorno
+.env
+.env.local
+
+# Docker
+.docker_data/

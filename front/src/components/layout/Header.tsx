@@ -1,0 +1,218 @@
+"use client";
+
+import { Bell, User, LogOut, Menu, Home, History } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { NavContent } from "./Sidebar";
+import { usePathname } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
+
+export function Header() {
+    const usuario = useAuthStore((state) => state.usuario);
+    const logout = useAuthStore((state) => state.logout);
+    const pathname = usePathname();
+
+    if (!usuario) return null;
+
+    const getInitials = (nombres: string, apellidos: string) => {
+        return `${nombres[0]}${apellidos[0]}`.toUpperCase();
+    };
+
+    return (
+        <header className="
+  h-16 
+  sticky top-0 z-40
+  bg-background/80 
+  backdrop-blur-xl 
+  border-b border-border/50 
+  flex items-center justify-between 
+  px-4 md:px-8
+  transition-all duration-300
+">
+
+            {/* LEFT */}
+            <div className="flex items-center gap-3">
+                {/* Mobile Menu Trigger */}
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 rounded-xl hover:bg-muted/60">
+                            <Menu size={20} className="text-foreground" />
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border h-full flex flex-col">
+                        <SheetHeader className="sr-only">
+                            <SheetTitle>Navegación Móvil</SheetTitle>
+                        </SheetHeader>
+
+                        <div className="p-6 h-20 flex items-center justify-center border-b border-sidebar-border/30 bg-black/5">
+                            <img
+                                src="/Logo_blanco.svg"
+                                alt="Logo Blanco Unión"
+                                className="h-8 w-auto"
+                            />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            <NavContent
+                                isCollapsed={false}
+                                pathname={pathname}
+                                usuario={usuario}
+                                logout={logout}
+                            />
+                        </div>
+
+                        <div className="p-4 border-t border-sidebar-border/30 bg-black/20">
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-rose-400 hover:bg-rose-500/10 h-11 rounded-xl transition-all"
+                                onClick={logout}
+                            >
+                                <LogOut size={18} />
+                                <span className="font-bold text-[11px] uppercase tracking-wider">Cerrar Sesión</span>
+                            </Button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                <div className="h-6 w-[1px] bg-border/50 mx-1 md:hidden" />
+
+                <h2 className="text-muted-foreground font-semibold text-[10px] md:text-[11px] uppercase tracking-widest hidden sm:block">
+                    Panel de Control /
+                    <span className="text-foreground ml-1 font-bold">Unión</span>
+                </h2>
+
+                <h2 className="text-foreground font-black text-xs uppercase tracking-tighter sm:hidden">
+                    Unión
+                </h2>
+            </div>
+
+            {/* RIGHT */}
+            <div className="flex items-center gap-5">
+
+                <ThemeToggle />
+
+
+                {/* 👤 USER SECTION */}
+                <div className="flex items-center gap-4 border-l pl-5 border-border/50">
+
+                    <div className="text-right hidden sm:block">
+                        <p className="text-sm font-semibold text-foreground tracking-tight leading-none">
+                            {usuario.nombres}
+                        </p>
+                        <Badge className="
+          mt-1 
+          text-[9px] 
+          py-0 px-2 
+          border border-primary/20 
+          text-primary 
+          bg-primary/10 
+          font-semibold 
+          uppercase tracking-wider
+        ">
+                            {usuario.rol}
+                        </Badge>
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="
+              relative 
+              h-10 w-10 
+              rounded-full 
+              p-0
+              hover:bg-muted/60
+              transition-all
+            "
+                            >
+                                <Avatar className="
+              h-10 w-10 
+              border border-border/50 
+              shadow-sm 
+              transition-all 
+              hover:scale-105
+            ">
+                                    <AvatarFallback className="
+                bg-gradient-to-br 
+                from-primary 
+                to-primary/70 
+                text-white 
+                font-semibold 
+                text-xs
+              ">
+                                        {getInitials(usuario.nombres, usuario.apellidos)}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent
+                            align="end"
+                            className="
+            w-60 
+            rounded-2xl 
+            border border-border/50 
+            bg-background/90 
+            backdrop-blur-xl 
+            shadow-2xl 
+            p-2
+            animate-in fade-in zoom-in-95
+          "
+                        >
+
+                            <DropdownMenuLabel className="px-3 py-3">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-semibold text-foreground leading-none">
+                                        {`${usuario.nombres} ${usuario.apellidos}`}
+                                    </p>
+                                    <p className="text-[11px] font-medium text-muted-foreground tracking-wide">
+                                        @{usuario.username}
+                                    </p>
+                                </div>
+                            </DropdownMenuLabel>
+
+                            <DropdownMenuItem
+                                onClick={logout}
+                                className="
+              cursor-pointer 
+              rounded-xl 
+              px-3 py-2.5
+              text-sm
+              text-rose-600 
+              hover:bg-rose-500/10
+              focus:bg-rose-500/10
+              transition-all
+            "
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Cerrar Sesión
+                            </DropdownMenuItem>
+
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                </div>
+            </div>
+        </header>
+
+    );
+}

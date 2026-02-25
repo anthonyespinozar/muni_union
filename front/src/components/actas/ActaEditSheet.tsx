@@ -1,0 +1,269 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Loader2, Save, FileEdit } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Acta, TipoActa } from "@/types/acta";
+import { actasService } from "@/services/actas.service";
+
+const actaSchema = z.object({
+    tipo_acta: z.enum(['NACIMIENTO', 'MATRIMONIO', 'DEFUNCION']),
+    numero_acta: z.string().min(1, "Número obligatorio"),
+    anio: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
+    fecha_acta: z.string().min(1, "Fecha obligatoria"),
+    observaciones: z.string().optional(),
+});
+
+type ActaFormData = z.infer<typeof actaSchema>;
+
+interface ActaEditSheetProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    acta: Acta | null;
+}
+
+export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditSheetProps) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<ActaFormData>({
+        resolver: zodResolver(actaSchema) as any,
+        defaultValues: {
+            tipo_acta: (acta?.tipo_acta as 'NACIMIENTO' | 'MATRIMONIO' | 'DEFUNCION') || 'NACIMIENTO',
+            numero_acta: acta?.numero_acta || "",
+            anio: acta?.anio || new Date().getFullYear(),
+            fecha_acta: acta?.fecha_acta ? acta.fecha_acta.split('T')[0] : "",
+            observaciones: acta?.observaciones || "",
+        },
+    });
+
+    const numActaValue = form.watch("numero_acta");
+    const fechaActaValue = form.watch("fecha_acta");
+
+    // Sincronizar año automáticamente con la fecha del acta
+    useEffect(() => {
+        if (fechaActaValue) {
+            const year = new Date(fechaActaValue + 'T00:00:00').getFullYear();
+            if (year >= 1900) {
+                form.setValue("anio", year);
+            }
+        }
+    }, [fechaActaValue, form]);
+
+    // Sincronización del formulario con el estado del Sheet y el Acta
+    useEffect(() => {
+        if (isOpen && acta) {
+            form.reset({
+                tipo_acta: acta.tipo_acta,
+                numero_acta: acta.numero_acta,
+                anio: acta.anio,
+                fecha_acta: acta.fecha_acta.split('T')[0],
+                observaciones: acta.observaciones || "",
+            });
+        } else if (!isOpen) {
+            form.reset({
+                tipo_acta: 'NACIMIENTO',
+                numero_acta: "",
+                anio: new Date().getFullYear(),
+                fecha_acta: "",
+                observaciones: "",
+            });
+            form.clearErrors();
+        }
+    }, [acta, isOpen, form]);
+
+    // Validación de duplicados al editar (solo si cambia el número respecto al original)
+    useEffect(() => {
+        if (numActaValue && numActaValue !== acta?.numero_acta) {
+            const timer = setTimeout(() => {
+                actasService.getAll({ numero: numActaValue.trim() })
+                    .then(actas => {
+                        const existente = actas.data.find(a =>
+                            String(a.numero_acta).trim() === numActaValue.trim() && a.id !== acta?.id
+                        );
+                        if (existente) {
+                            toast.warning(`Atención: El acta N° ${numActaValue} ya existe.`, {
+                                description: `Pertenece a otro registro (${existente.tipo_acta}). Evite duplicados.`,
+                                duration: 8000
+                            });
+                        }
+                    });
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+    }, [numActaValue, acta, isOpen]);
+
+    const onSubmit = async (values: ActaFormData) => {
+        if (!acta) return;
+        setIsSubmitting(true);
+        try {
+            await actasService.update(acta.id, {
+                ...values,
+                persona_principal_id: acta.persona_principal_id
+            });
+            toast.success("Acta actualizada correctamente");
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error("Error updating acta:", error);
+            toast.error("Error al actualizar el acta");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Sheet open={isOpen} onOpenChange={onClose}>
+            <SheetContent className="sm:max-w-md flex flex-col h-full p-0 overflow-hidden">
+                <div className="p-6 border-b bg-muted/30">
+                    <SheetHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-2.5 rounded-xl shadow-sm">
+                                <FileEdit className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <SheetTitle className="text-xl font-bold tracking-tight">
+                                    Editar Acta
+                                </SheetTitle>
+                                <SheetDescription className="text-muted-foreground font-medium text-[11px] uppercase tracking-wider">
+                                    N° {acta?.numero_acta || "S/N"} · Registro Integral
+                                </SheetDescription>
+                            </div>
+                        </div>
+                    </SheetHeader>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                    <Form {...form}>
+                        <form id="acta-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pb-4">
+                            <FormField
+                                control={form.control}
+                                name="tipo_acta"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="std-label mb-1.5">Tipo de Acta</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="std-input h-10 font-semibold uppercase text-xs">
+                                                    <SelectValue placeholder="—" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="NACIMIENTO" className="font-semibold">NACIMIENTO</SelectItem>
+                                                <SelectItem value="MATRIMONIO" className="font-semibold">MATRIMONIO</SelectItem>
+                                                <SelectItem value="DEFUNCION" className="font-semibold">DEFUNCIÓN</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="numero_acta"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="std-label mb-1.5">N° Acta</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} className="std-input h-10 font-bold tracking-widest uppercase" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="anio"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="std-label mb-1.5">Año</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" {...field} disabled className="std-input h-10 bg-muted/50 text-muted-foreground font-bold" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <FormField
+                                control={form.control}
+                                name="fecha_acta"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="std-label mb-1.5">Fecha del Acta</FormLabel>
+                                        <FormControl>
+                                            <Input type="date" {...field} className="std-input h-10 font-semibold text-xs" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="observaciones"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="std-label mb-1.5">Observaciones</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="..."
+                                                className="std-input min-h-[100px] py-3 resize-none font-medium bg-muted/10"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </form>
+                    </Form>
+                </div>
+
+                <div className="p-6 border-t bg-background">
+                    <div className="flex gap-4">
+                        <Button type="button" variant="outline" className="flex-1 h-12 rounded-xl font-bold uppercase text-[11px] tracking-widest" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" form="acta-form" className="flex-1 h-12 rounded-xl btn-primary font-bold uppercase text-[11px] tracking-widest gap-2 shadow-lg shadow-primary/20" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                            Guardar Cambios
+                        </Button>
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
+    );
+}
