@@ -39,7 +39,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const solicitudSchema = z.object({
-    dni_solicitante: z.string().max(8, "Máximo 8 dígitos").regex(/^\d*$/, "Debe ser numérico").optional().or(z.literal("")),
+    dni_solicitante: z.string().length(9, "DNI del solicitante debe tener 9 dígitos").regex(/^\d+$/, "Solo números"),
     nombres_solicitante: z.string().min(2, "Nombres son obligatorios").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     apellidos_solicitante: z.string().min(2, "Apellidos son obligatorios").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     telefono_solicitante: z.string().max(9, "El teléfono no puede tener más de 9 dígitos").optional().or(z.literal("")),
@@ -95,7 +95,7 @@ export function NuevaSolicitudForm({
     const dni = form.watch("dni_solicitante");
 
     useEffect(() => {
-        if (dni && dni.length >= 6 && dni.length <= 8) {
+        if (dni && dni.length === 9) {
             buscarSolicitante(dni);
         }
     }, [dni]);
@@ -244,9 +244,9 @@ export function NuevaSolicitudForm({
                                             <FormControl>
                                                 <div className="relative">
                                                     <Input
-                                                        placeholder="DNI O VACÍO"
+                                                        placeholder="9 DÍGITOS"
                                                         {...field}
-                                                        maxLength={8}
+                                                        maxLength={9}
                                                         className="font-mono h-10 border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-primary/10 rounded-lg transition-all"
                                                     />
                                                     {loadingSolicitante && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-blue-400" size={16} />}
