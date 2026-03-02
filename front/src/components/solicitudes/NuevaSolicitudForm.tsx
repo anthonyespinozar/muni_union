@@ -39,7 +39,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const solicitudSchema = z.object({
-    dni_solicitante: z.string().length(8, "DNI debe tener 8 dígitos").regex(/^\d+$/, "DNI solo debe contener números"),
+    dni_solicitante: z.string().max(8, "Máximo 8 dígitos").regex(/^\d*$/, "Debe ser numérico").optional().or(z.literal("")),
     nombres_solicitante: z.string().min(2, "Nombres son obligatorios").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     apellidos_solicitante: z.string().min(2, "Apellidos son obligatorios").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     telefono_solicitante: z.string().max(9, "El teléfono no puede tener más de 9 dígitos").optional().or(z.literal("")),
@@ -95,7 +95,7 @@ export function NuevaSolicitudForm({
     const dni = form.watch("dni_solicitante");
 
     useEffect(() => {
-        if (dni.length === 8) {
+        if (dni && dni.length >= 6 && dni.length <= 8) {
             buscarSolicitante(dni);
         }
     }, [dni]);
@@ -165,7 +165,7 @@ export function NuevaSolicitudForm({
         setSubmitting(true);
         try {
             const solicitante = await solicitudesService.createSolicitante({
-                dni: values.dni_solicitante,
+                dni: values.dni_solicitante || "",
                 nombres: values.nombres_solicitante,
                 apellidos: values.apellidos_solicitante,
                 telefono: values.telefono_solicitante || undefined,
@@ -244,7 +244,7 @@ export function NuevaSolicitudForm({
                                             <FormControl>
                                                 <div className="relative">
                                                     <Input
-                                                        placeholder="8 DÍGITOS"
+                                                        placeholder="DNI O VACÍO"
                                                         {...field}
                                                         maxLength={8}
                                                         className="font-mono h-10 border-border bg-muted/30 focus:bg-card focus:border-primary focus:ring-primary/10 rounded-lg transition-all"

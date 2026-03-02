@@ -34,7 +34,7 @@ import { Loader2, Save, UserPlus, Fingerprint, MapPin, Calendar, Phone } from "l
 import { Persona, PersonaInput } from "@/types/persona";
 
 const personaSchema = z.object({
-    dni: z.string().length(8, "DNI debe tener 8 dígitos").regex(/^\d+$/, "Solo números").optional().or(z.literal("")),
+    dni: z.string().max(8, "Máximo 8 dígitos").regex(/^\d*$/, "Debe ser numérico").optional().or(z.literal("")),
     nombres: z.string().min(2, "Nombres son obligatorios"),
     apellido_paterno: z.string().min(2, "Apellido Paterno es obligatorio"),
     apellido_materno: z.string().min(2, "Apellido Materno es obligatorio"),
@@ -179,7 +179,7 @@ export function PersonaSheet({
                                             <FormControl>
                                                 <Input
                                                     {...field}
-                                                    placeholder="8 DÍGITOS"
+                                                    placeholder="DNI O VACÍO"
                                                     maxLength={8}
                                                     className="std-input h-10 font-bold bg-muted/20"
                                                 />
