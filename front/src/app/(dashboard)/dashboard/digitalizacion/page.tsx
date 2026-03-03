@@ -155,18 +155,28 @@ export default function DigitalizacionPage() {
         }
     }, [dniValue, form]);
 
-    // Búsqueda de duplicados por nombre (si no hay DNI o para verificar)
+    // Búsqueda de duplicados por nombre (para verificar homonimias)
     useEffect(() => {
-        if (nombresValue?.length > 2 && paternoValue?.length > 2 && maternoValue?.length > 2 && !dniValue) {
+        if (nombresValue?.length > 2 && paternoValue?.length > 2 && maternoValue?.length > 2) {
             const timer = setTimeout(() => {
                 personasService.buscarDuplicados(nombresValue, paternoValue, maternoValue)
                     .then(personas => {
-                        if (personas.length > 0 && !personaEncontrada) {
-                            const p = personas[0];
-                            toast.warning("Posible registro duplicado encontrado", {
-                                description: `Existe un ciudadano llamado ${p.apellido_paterno} ${p.apellido_materno}, ${p.nombres} registrado previamente.`,
-                                duration: 8000
-                            });
+                        // Solo alertamos si:
+                        // 1. Encontramos a alguien con esos nombres
+                        // 2. No es la misma persona que ya identificamos por DNI (si existiera)
+                        const p = personas[0];
+                        if (p && (!personaEncontrada || p.id !== personaEncontrada.id)) {
+                            const esDiferenteDni = dniValue && p.dni !== dniValue;
+
+                            toast.warning(
+                                esDiferenteDni ? "Posible Homonimia Detectada" : "Ciudadano ya registrado",
+                                {
+                                    description: esDiferenteDni
+                                        ? `Existe un ciudadano con los mismos nombres pero con DNI ${p.dni || "S/N"}. Verifique si se trata de la misma persona.`
+                                        : `El ciudadano ${p.apellido_paterno} ${p.apellido_materno}, ${p.nombres} ya existe en el sistema.`,
+                                    duration: 8000
+                                }
+                            );
                         }
                     });
             }, 1000);
@@ -620,7 +630,7 @@ export default function DigitalizacionPage() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <div className="flex items-center justify-between mb-1.5 ">
-                                                            <FormLabel className="std-label m-0 p-0 leading-none">N° de Acta</FormLabel>
+                                                            <FormLabel className="std-label m-0 p-0 leading-none">N° PAGINA</FormLabel>
                                                             {(libroValue || numActaValue) && (
                                                                 <Badge variant="outline" className="h-4 px-1 text-[8px] bg-primary/5 text-primary border-primary/20 font-bold">
                                                                     PREVIEW: {tipoActaValue.substring(0, 3)}-L{libroValue || '?'}-{numActaValue || '?'}
