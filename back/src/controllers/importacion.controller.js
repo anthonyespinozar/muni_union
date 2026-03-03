@@ -39,18 +39,42 @@ export const uploadImport = multer({
 const parsearExcel = (rutaArchivo) => {
     const workbook = XLSX.readFile(rutaArchivo);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const filas = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    return filas
-        .filter(f => f.nombres || f.apellido_paterno)
+    // Leer todas las filas como arrays raw (sin asumir cuál es el encabezado)
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+    // Buscar la fila que contiene los nombres reales de columna
+    // Es la primera fila que tiene la celda "tipo_documento" o "nombres"
+    let headerRowIndex = -1;
+    for (let i = 0; i < rawRows.length; i++) {
+        const rowStr = rawRows[i].map(c => String(c).trim().toLowerCase());
+        if (rowStr.includes("tipo_documento") || rowStr.includes("nombres")) {
+            headerRowIndex = i;
+            break;
+        }
+    }
+
+    if (headerRowIndex === -1) {
+        throw new Error(
+            "No se encontraron encabezados válidos. Verifique que el Excel tenga la fila de columnas con 'tipo_documento', 'nombres', etc."
+        );
+    }
+
+    // Usar esa fila como encabezados y el resto como datos
+    const headers = rawRows[headerRowIndex].map(h => String(h).trim().toLowerCase().replace(/ /g, "_"));
+    const dataRows = rawRows.slice(headerRowIndex + 1);
+
+    return dataRows
+        .map(row => {
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = String(row[i] ?? "").trim(); });
+            return obj;
+        })
+        .filter(f => f.nombres || f.apellido_paterno) // Ignorar filas vacías
         .map(f => {
-            const norm = {};
-            Object.keys(f).forEach(k => {
-                norm[k.trim().toLowerCase().replace(/ /g, "_")] = String(f[k]).trim();
-            });
-            if (norm.tipo_acta) norm.tipo_acta = norm.tipo_acta.toUpperCase();
-            if (norm.sexo) norm.sexo = norm.sexo.toUpperCase();
-            return norm;
+            if (f.tipo_acta) f.tipo_acta = f.tipo_acta.toUpperCase();
+            if (f.sexo) f.sexo = f.sexo.toUpperCase();
+            return f;
         });
 };
 
