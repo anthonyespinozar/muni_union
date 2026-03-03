@@ -599,7 +599,7 @@ export default function DigitalizacionPage() {
                                                 name="libro"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="std-label mb-1.5 font-bold text-primary italic">Libro N°</FormLabel>
+                                                        <FormLabel className="std-label mb-1.5">Libro N°</FormLabel>
                                                         <FormControl>
                                                             <Input
                                                                 {...field}

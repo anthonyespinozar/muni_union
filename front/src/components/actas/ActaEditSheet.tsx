@@ -241,7 +241,7 @@ export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditShee
                                         name="libro"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="std-label mb-1.5 font-bold text-primary italic">Libro</FormLabel>
+                                                <FormLabel className="std-label mb-1.5">Libro</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} className="std-input h-10 font-bold bg-primary/5 text-center" />
                                                 </FormControl>
