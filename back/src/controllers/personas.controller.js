@@ -114,3 +114,12 @@ export const buscarDuplicados = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const listarTiposDocumento = async (req, res) => {
+    try {
+        const tipos = await personasService.listarTiposDocumento();
+        res.json(tipos);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

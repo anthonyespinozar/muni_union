@@ -138,3 +138,8 @@ export const reactivarPersona = async (id, usuario_id) => {
     );
     return rows[0];
 };
+
+export const listarTiposDocumento = async () => {
+    const { rows } = await pool.query("SELECT * FROM tipos_documento ORDER BY nombre");
+    return rows;
+};

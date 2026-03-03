@@ -6,7 +6,8 @@ import {
     actualizarPersona,
     eliminarPersona,
     reactivarPersona,
-    buscarDuplicados
+    buscarDuplicados,
+    listarTiposDocumento
 } from "../controllers/personas.controller.js";
 import { auth } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
@@ -18,6 +19,7 @@ router.use(auth);
 // Rutas generales (ADMIN y USER)
 router.post("/", crearPersona);
 router.get("/", listarPersonas);
+router.get("/tipos-documento", listarTiposDocumento);
 router.get("/buscar-duplicados", buscarDuplicados);
 router.get("/:id", obtenerPersona);
 router.put("/:id", actualizarPersona);

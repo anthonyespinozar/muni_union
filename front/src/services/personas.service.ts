@@ -52,5 +52,10 @@ export const personasService = {
             }
         });
         return data;
+    },
+
+    async getTiposDocumento() {
+        const { data } = await api.get<{ id: number, nombre: string }[]>("/personas/tipos-documento");
+        return data;
     }
 };

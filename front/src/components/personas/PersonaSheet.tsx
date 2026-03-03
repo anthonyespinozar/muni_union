@@ -32,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save, UserPlus, Fingerprint, MapPin, Calendar, Phone } from "lucide-react";
 import { Persona, PersonaInput } from "@/types/persona";
+import { personasService } from "@/services/personas.service";
 
 const personaSchema = z.object({
     tipo_documento: z.string().min(1, "Seleccione tipo"),
@@ -62,6 +63,21 @@ export function PersonaSheet({
     onSubmit
 }: PersonaSheetProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [tiposDocumento, setTiposDocumento] = useState<{ id: number, nombre: string }[]>([]);
+
+    useEffect(() => {
+        const loadTipos = async () => {
+            try {
+                const data = await personasService.getTiposDocumento();
+                setTiposDocumento(data);
+            } catch (error) {
+                console.error("Error al cargar tipos de documento:", error);
+            }
+        };
+        if (isOpen) {
+            loadTipos();
+        }
+    }, [isOpen]);
 
     const form = useForm<PersonaFormValues>({
         resolver: zodResolver(personaSchema),
@@ -186,11 +202,20 @@ export function PersonaSheet({
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="DNI" className="font-semibold">DNI</SelectItem>
-                                                    <SelectItem value="CNE" className="font-semibold">CARNET EXTR.</SelectItem>
-                                                    <SelectItem value="PASAPORTE" className="font-semibold">PASAPORTE</SelectItem>
-                                                    <SelectItem value="P. NACIMIENTO" className="font-semibold">P. NACIMIENTO</SelectItem>
-                                                    <SelectItem value="OTROS" className="font-semibold">OTROS</SelectItem>
+                                                    {tiposDocumento.length > 0 ? (
+                                                        tiposDocumento.map((tipo) => (
+                                                            <SelectItem key={tipo.id} value={tipo.nombre} className="font-semibold">
+                                                                {tipo.nombre}
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <>
+                                                            <SelectItem value="DNI" className="font-semibold">DNI</SelectItem>
+                                                            <SelectItem value="CNE" className="font-semibold">CARNET EXTR.</SelectItem>
+                                                            <SelectItem value="PASAPORTE" className="font-semibold">PASAPORTE</SelectItem>
+                                                            <SelectItem value="P. NACIMIENTO" className="font-semibold">P. NACIMIENTO</SelectItem>
+                                                        </>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
