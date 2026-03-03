@@ -62,7 +62,8 @@ const formSchema = z.object({
 
     // Acta
     tipo_acta: z.enum(["NACIMIENTO", "MATRIMONIO", "DEFUNCION"]),
-    numero_acta: z.string().min(1, "Obligatorio").transform(v => v.toUpperCase()),
+    libro: z.string().min(1, "Libro"),
+    numero_acta: z.string().min(1, "Acta"),
     anio: z.coerce.number().min(1900),
     fecha_acta: z.string().min(1, "Obligatorio"),
     acta_observaciones: z.string().optional(),
@@ -97,6 +98,7 @@ export default function DigitalizacionPage() {
             telefono: "",
             persona_observaciones: "",
             tipo_acta: "NACIMIENTO",
+            libro: "",
             numero_acta: "",
             anio: new Date().getFullYear(),
             fecha_acta: new Date().toISOString().split('T')[0],
@@ -108,6 +110,7 @@ export default function DigitalizacionPage() {
     const nombresValue = form.watch("nombres");
     const paternoValue = form.watch("apellido_paterno");
     const maternoValue = form.watch("apellido_materno");
+    const libroValue = form.watch("libro");
     const numActaValue = form.watch("numero_acta");
     const fechaActaValue = form.watch("fecha_acta");
     const tipoActaValue = form.watch("tipo_acta");
@@ -172,14 +175,15 @@ export default function DigitalizacionPage() {
 
     // Validación de Acta Duplicada por Número (Preventiva)
     useEffect(() => {
-        if (numActaValue && numActaValue.length >= 1) {
+        if (numActaValue && libroValue) {
+            const formattedNum = `L${libroValue}-${numActaValue}`;
             const timer = setTimeout(() => {
                 actasService.getAll({
-                    numero: String(numActaValue).trim()
+                    numero: formattedNum
                 }).then(response => {
                     const actas = response.data || [];
                     const existente = actas.find(a =>
-                        String(a.numero_acta).trim() === String(numActaValue).trim()
+                        String(a.numero_acta).trim().toUpperCase() === formattedNum.toUpperCase()
                     );
 
                     if (existente) {
@@ -254,11 +258,13 @@ export default function DigitalizacionPage() {
             }
 
             // 2. Crear o Actualizar Acta
+            const fullNumeroActa = `L${values.libro}-${values.numero_acta}`.toUpperCase();
+
             let currentActaId: number;
             if (actaEncontrada) {
                 const updatedActa = await actasService.update(actaEncontrada.id, {
                     tipo_acta: values.tipo_acta,
-                    numero_acta: values.numero_acta,
+                    numero_acta: fullNumeroActa,
                     anio: values.anio,
                     fecha_acta: values.fecha_acta,
                     persona_principal_id: personaId,
@@ -268,7 +274,7 @@ export default function DigitalizacionPage() {
             } else {
                 const newActa = await actasService.create({
                     tipo_acta: values.tipo_acta,
-                    numero_acta: values.numero_acta,
+                    numero_acta: fullNumeroActa,
                     anio: values.anio,
                     fecha_acta: values.fecha_acta,
                     persona_principal_id: personaId as number,
@@ -570,7 +576,27 @@ export default function DigitalizacionPage() {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                                        <div className="md:col-span-8">
+                                        <div className="md:col-span-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="libro"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="std-label mb-1.5 font-bold text-primary italic">Libro N°</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                {...field}
+                                                                placeholder="LIBRO"
+                                                                disabled={!!actaEncontrada}
+                                                                className="std-input font-bold bg-primary/5 border-primary/20 text-center text-sm"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-5">
                                             <FormField
                                                 control={form.control}
                                                 name="numero_acta"
@@ -580,8 +606,9 @@ export default function DigitalizacionPage() {
                                                         <FormControl>
                                                             <Input
                                                                 {...field}
-                                                                placeholder="EJ: 450-A"
-                                                                className="std-input font-semibold uppercase text-xs"
+                                                                placeholder="ACTA"
+                                                                disabled={!!actaEncontrada}
+                                                                className="std-input font-semibold uppercase text-sm"
                                                                 onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                                                             />
                                                         </FormControl>
@@ -590,7 +617,7 @@ export default function DigitalizacionPage() {
                                                 )}
                                             />
                                         </div>
-                                        <div className="md:col-span-4">
+                                        <div className="md:col-span-3">
                                             <FormField
                                                 control={form.control}
                                                 name="anio"

@@ -156,7 +156,7 @@ export function ActasTable({
                     />
                 </div>
                 <Input
-                    placeholder="N° Acta"
+                    placeholder="N° Acta (Ej: L1-45)"
                     className="std-input"
                     value={searchNumero}
                     onChange={(e) => setSearchNumero(e.target.value)}
@@ -197,7 +197,7 @@ export function ActasTable({
                                     <TableCell className="std-table-cell">
                                         <div className="flex flex-col gap-1.5">
                                             {getTipoActaBadge(acta.tipo_acta)}
-                                            <span className="data-console w-fit">ID: {acta.id} • N° {acta.numero_acta}</span>
+                                            <span className="data-console w-fit font-bold tracking-tight text-primary/80">N° {acta.numero_acta}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="std-table-cell">
