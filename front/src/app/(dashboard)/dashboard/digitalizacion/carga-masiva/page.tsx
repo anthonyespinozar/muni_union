@@ -14,7 +14,6 @@ import api from "@/utils/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 
 interface ResultadoFila {
@@ -280,7 +279,12 @@ export default function CargaMasivaPage() {
                                 <span className="text-sm font-bold">Tasa de Éxito</span>
                                 <span className="text-sm font-black text-emerald-600">{porcentajeExito}%</span>
                             </div>
-                            <Progress value={porcentajeExito} className="h-3 rounded-full" />
+                            <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                                    style={{ width: `${porcentajeExito}%` }}
+                                />
+                            </div>
                             {resumen.errores > 0 && (
                                 <p className="text-xs text-muted-foreground mt-2">
                                     Descarga el reporte de errores para corregir las filas fallidas y volver a importarlas.
