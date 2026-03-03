@@ -1,0 +1,40 @@
+
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"></head>
+<body>
+<table border="1">
+  <tr style="background-color: #0070c0; color: white; font-weight: bold;">
+    <td>tipo_documento</td>
+    <td>dni</td>
+    <td>nombres</td>
+    <td>apellido_paterno</td>
+    <td>apellido_materno</td>
+    <td>sexo</td>
+    <td>fecha_nacimiento</td>
+    <td>tipo_acta</td>
+    <td>libro</td>
+    <td>numero_acta</td>
+    <td>anio</td>
+    <td>fecha_registro_acta</td>
+    <td>nombre_archivo_pdf</td>
+    <td>observaciones</td>
+  </tr>
+  <tr>
+    <td>DNI</td>
+    <td>70654321</td>
+    <td>JUAN ALBERTO</td>
+    <td>PEREZ</td>
+    <td>GARCIA</td>
+    <td>M</td>
+    <td>1990-05-15</td>
+    <td>NACIMIENTO</td>
+    <td>1</td>
+    <td>45</td>
+    <td>1990</td>
+    <td>1990-06-20</td>
+    <td>NAC-L1-45.pdf</td>
+    <td>Ejemplo manuscrito</td>
+  </tr>
+</table>
+</body>
+</html>

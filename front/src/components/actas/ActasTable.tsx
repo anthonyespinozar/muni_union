@@ -178,7 +178,7 @@ export function ActasTable({
                         variant="outline"
                         size="sm"
                         className="h-9 border-dashed border-primary/40 text-primary hover:bg-primary/5 font-bold"
-                        onClick={() => window.open('/templates/plantilla_carga_masiva.csv', '_blank')}
+                        onClick={() => window.open('/templates/plantilla_carga_masiva.xls', '_blank')}
                     >
                         <Download className="h-4 w-4 mr-2" />
                         PLANTILLA
