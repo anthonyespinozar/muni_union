@@ -7,14 +7,16 @@ import {
     Edit,
     Trash2,
     MoreHorizontal,
+    Paperclip,
+    RefreshCw,
+    Download,
+    FileSpreadsheet,
     FileDown,
     Cross,
     Baby,
     Heart,
     Ban,
-    RotateCcw,
-    Paperclip,
-    RefreshCw,
+    RotateCcw
 } from "lucide-react";
 import { Pagination } from "@/components/shared/Pagination";
 import { format } from "date-fns";
@@ -145,29 +147,52 @@ export function ActasTable({
     return (
         <div className="space-y-4">
             {/* Standard Search Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-                <div className="relative md:col-span-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
+            <div className="flex flex-col md:flex-row gap-4 bg-card p-4 rounded-xl border border-border shadow-sm items-end">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 w-full">
+                    <div className="relative md:col-span-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
+                        <Input
+                            placeholder="Buscar por DNI o Nombres..."
+                            className="pl-9 std-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                     <Input
-                        placeholder="Buscar por DNI o Nombres..."
-                        className="pl-9 std-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="N° Acta (Ej: NAC-L1-45)"
+                        className="std-input"
+                        value={searchNumero}
+                        onChange={(e) => setSearchNumero(e.target.value)}
+                    />
+                    <Input
+                        placeholder="Año"
+                        type="number"
+                        className="std-input"
+                        value={searchAnio}
+                        onChange={(e) => setSearchAnio(e.target.value)}
                     />
                 </div>
-                <Input
-                    placeholder="N° Acta (Ej: NAC-L1-45)"
-                    className="std-input"
-                    value={searchNumero}
-                    onChange={(e) => setSearchNumero(e.target.value)}
-                />
-                <Input
-                    placeholder="Año"
-                    type="number"
-                    className="std-input"
-                    value={searchAnio}
-                    onChange={(e) => setSearchAnio(e.target.value)}
-                />
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 border-dashed border-primary/40 text-primary hover:bg-primary/5 font-bold"
+                        onClick={() => window.open('/templates/plantilla_carga_masiva.csv', '_blank')}
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        PLANTILLA
+                    </Button>
+                    <Button
+                        variant="default"
+                        size="sm"
+                        className="h-9 bg-emerald-600 hover:bg-emerald-700 shadow-sm font-bold"
+                        onClick={() => window.location.href = '/dashboard/digitalizacion/carga-masiva'}
+                    >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        IMPORTAR
+                    </Button>
+                </div>
             </div>
 
             <div className="std-table-container">
