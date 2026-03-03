@@ -40,15 +40,17 @@ const parsearExcel = (rutaArchivo) => {
     const workbook = XLSX.readFile(rutaArchivo);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    // Leer todas las filas como arrays raw (sin asumir cuál es el encabezado)
+    // Leer todas las filas como arrays raw
     const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
-    // Buscar la fila que contiene los nombres reales de columna
-    // Es la primera fila que tiene la celda "tipo_documento" o "nombres"
+    // Buscar la fila que contiene los nombres reales de columna.
+    // Usamos .some() con includes() para detectar "tipo_documento" como SUBCADENA
+    // (maneja casos como "tipo_documento *" o "tipo_documento (requerido)")
     let headerRowIndex = -1;
     for (let i = 0; i < rawRows.length; i++) {
         const rowStr = rawRows[i].map(c => String(c).trim().toLowerCase());
-        if (rowStr.includes("tipo_documento") || rowStr.includes("nombres")) {
+        const esFila = rowStr.some(c => c.includes("tipo_documento") || c === "nombres");
+        if (esFila) {
             headerRowIndex = i;
             break;
         }
@@ -56,12 +58,18 @@ const parsearExcel = (rutaArchivo) => {
 
     if (headerRowIndex === -1) {
         throw new Error(
-            "No se encontraron encabezados válidos. Verifique que el Excel tenga la fila de columnas con 'tipo_documento', 'nombres', etc."
+            "No se encontraron encabezados válidos en el Excel. " +
+            "Verifique que la primera fila tenga los nombres de columna (tipo_documento, nombres, tipo_acta, etc.)."
         );
     }
 
-    // Usar esa fila como encabezados y el resto como datos
-    const headers = rawRows[headerRowIndex].map(h => String(h).trim().toLowerCase().replace(/ /g, "_"));
+    // Limpiar los encabezados: quitar sufijo ' *', espacios extra y normalizar
+    const headers = rawRows[headerRowIndex].map(h =>
+        String(h).trim().toLowerCase()
+            .replace(/ \*/g, "")       // quitar " *" de obligatorios
+            .replace(/\s+/g, "_")      // espacios → guion bajo
+    );
+
     const dataRows = rawRows.slice(headerRowIndex + 1);
 
     return dataRows
@@ -70,10 +78,11 @@ const parsearExcel = (rutaArchivo) => {
             headers.forEach((h, i) => { obj[h] = String(row[i] ?? "").trim(); });
             return obj;
         })
-        .filter(f => f.nombres || f.apellido_paterno) // Ignorar filas vacías
+        .filter(f => f.nombres || f.apellido_paterno)
         .map(f => {
-            if (f.tipo_acta) f.tipo_acta = f.tipo_acta.toUpperCase();
-            if (f.sexo) f.sexo = f.sexo.toUpperCase();
+            if (f.tipo_acta) f.tipo_acta = f.tipo_acta.toUpperCase().trim();
+            if (f.sexo) f.sexo = f.sexo.toUpperCase().trim();
+            if (f.tipo_documento) f.tipo_documento = f.tipo_documento.trim();
             return f;
         });
 };
