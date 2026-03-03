@@ -122,7 +122,7 @@ export default function CargaMasivaPage() {
                     <Button
                         variant="outline"
                         className="h-10 font-bold border-dashed border-primary/40"
-                        onClick={() => window.open('/templates/plantilla_carga_masiva.xls', '_blank')}
+                        onClick={() => window.open('/templates/plantilla_carga_masiva.xlsx', '_blank')}
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Descargar Plantilla
