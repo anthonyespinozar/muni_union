@@ -9,6 +9,7 @@ import {
     Phone,
     Calendar
 } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import {
     Table,
     TableBody,
@@ -140,7 +141,7 @@ export function PersonasTable({
                                         <div className="flex flex-col items-center">
                                             <span className="text-xs text-foreground/80">
                                                 {persona.fecha_nacimiento
-                                                    ? new Date(persona.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-ES')
+                                                    ? format(parseISO(persona.fecha_nacimiento), 'dd/MM/yyyy')
                                                     : "-"}
                                             </span>
                                         </div>

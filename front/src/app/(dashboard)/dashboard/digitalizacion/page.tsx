@@ -335,9 +335,9 @@ export default function DigitalizacionPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="std-label mb-1.5 uppercase font-bold text-[10px] text-primary">Tipo Doc.</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value} disabled={!!personaEncontrada}>
                                                         <FormControl>
-                                                            <SelectTrigger className="std-input h-10 font-bold bg-muted/20 border-primary/20">
+                                                            <SelectTrigger className={cn("std-input h-10 font-bold bg-muted/20 border-primary/20", !!personaEncontrada && "opacity-80")}>
                                                                 <SelectValue placeholder="—" />
                                                             </SelectTrigger>
                                                         </FormControl>
@@ -368,7 +368,7 @@ export default function DigitalizacionPage() {
                                                             placeholder="Número..."
                                                             {...field}
                                                             maxLength={15}
-                                                            className="std-input text-sm font-semibold tracking-widest"
+                                                            className="std-input text-sm font-semibold tracking-widest focus-visible:ring-primary"
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -383,7 +383,7 @@ export default function DigitalizacionPage() {
                                                     <FormLabel className="std-label mb-1.5">F. Nacimiento</FormLabel>
                                                     <FormControl>
                                                         <div className="relative">
-                                                            <Input type="date" {...field} className="std-input pl-9 text-xs" />
+                                                            <Input type="date" {...field} className="std-input pl-9 text-xs" disabled={!!personaEncontrada} />
                                                             <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
                                                         </div>
                                                     </FormControl>
@@ -397,7 +397,7 @@ export default function DigitalizacionPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="std-label mb-1.5">Sexo</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!!personaEncontrada}>
                                                         <FormControl>
                                                             <SelectTrigger className="std-input font-semibold text-sm">
                                                                 <SelectValue />
@@ -424,6 +424,7 @@ export default function DigitalizacionPage() {
                                                     <FormControl>
                                                         <Input
                                                             {...field}
+                                                            disabled={!!personaEncontrada}
                                                             placeholder="Nombres"
                                                             className="std-input font-semibold uppercase tracking-tight text-xs"
                                                             onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -442,6 +443,7 @@ export default function DigitalizacionPage() {
                                                     <FormControl>
                                                         <Input
                                                             {...field}
+                                                            disabled={!!personaEncontrada}
                                                             placeholder="Paterno"
                                                             className="std-input font-semibold uppercase tracking-tight text-xs"
                                                             onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -460,6 +462,7 @@ export default function DigitalizacionPage() {
                                                     <FormControl>
                                                         <Input
                                                             {...field}
+                                                            disabled={!!personaEncontrada}
                                                             placeholder="Materno"
                                                             className="std-input font-semibold uppercase tracking-tight text-xs"
                                                             onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -481,7 +484,7 @@ export default function DigitalizacionPage() {
                                                         <FormLabel className="std-label mb-1.5">Teléfono</FormLabel>
                                                         <FormControl>
                                                             <div className="relative">
-                                                                <Input placeholder="Opcional" {...field} className="std-input pl-9 text-xs" />
+                                                                <Input placeholder="Opcional" {...field} disabled={!!personaEncontrada} className="std-input pl-9 text-xs" />
                                                                 <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                                                             </div>
                                                         </FormControl>
@@ -500,6 +503,7 @@ export default function DigitalizacionPage() {
                                                         <FormControl>
                                                             <Textarea
                                                                 {...field}
+                                                                disabled={!!personaEncontrada}
                                                                 placeholder="Aclaraciones..."
                                                                 className="std-input min-h-[40px] py-2 resize-none border-border/60 bg-muted/20 text-xs"
                                                             />
@@ -532,7 +536,7 @@ export default function DigitalizacionPage() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel className="std-label mb-1.5">Tipo de Acta</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!actaEncontrada}>
                                                             <FormControl>
                                                                 <SelectTrigger className="std-input font-semibold text-xs">
                                                                     <SelectValue />
@@ -556,7 +560,7 @@ export default function DigitalizacionPage() {
                                                     <FormItem>
                                                         <FormLabel className="std-label mb-1.5">F. Registro</FormLabel>
                                                         <FormControl>
-                                                            <Input type="date" {...field} className="std-input text-xs" />
+                                                            <Input type="date" {...field} disabled={!!actaEncontrada} className="std-input text-xs" />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -608,10 +612,11 @@ export default function DigitalizacionPage() {
                                         name="acta_observaciones"
                                         render={({ field }) => (
                                             <FormItem className="space-y-1">
-                                                <FormLabel className="std-label mb-1.5 text-muted-foreground">Notas del Acta</FormLabel>
+                                                <FormLabel className="std-label mb-1.5">Notas del Acta</FormLabel>
                                                 <FormControl>
                                                     <Textarea
                                                         {...field}
+                                                        disabled={!!actaEncontrada}
                                                         placeholder="Observaciones..."
                                                         className="std-input min-h-[40px] py-1 resize-none border-border/60 bg-muted/20 text-xs"
                                                     />
