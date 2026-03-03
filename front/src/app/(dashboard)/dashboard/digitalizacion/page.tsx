@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
     Form,
     FormControl,
@@ -618,7 +619,14 @@ export default function DigitalizacionPage() {
                                                 name="numero_acta"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel className="std-label mb-1.5">N° de Acta</FormLabel>
+                                                        <div className="flex items-center justify-between mb-1.5 ">
+                                                            <FormLabel className="std-label m-0 p-0 leading-none">N° de Acta</FormLabel>
+                                                            {(libroValue || numActaValue) && (
+                                                                <Badge variant="outline" className="h-4 px-1 text-[8px] bg-primary/5 text-primary border-primary/20 font-bold">
+                                                                    PREVIEW: {tipoActaValue.substring(0, 3)}-L{libroValue || '?'}-{numActaValue || '?'}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                         <FormControl>
                                                             <Input
                                                                 {...field}

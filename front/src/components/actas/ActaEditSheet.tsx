@@ -14,6 +14,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import {
     Form,
     FormControl,
@@ -37,6 +38,7 @@ import { actasService } from "@/services/actas.service";
 
 const actaSchema = z.object({
     tipo_acta: z.enum(['NACIMIENTO', 'MATRIMONIO', 'DEFUNCION']),
+    libro: z.string().min(1, "Libro obligatorio"),
     numero_acta: z.string().min(1, "Número obligatorio"),
     anio: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
     fecha_acta: z.string().min(1, "Fecha obligatoria"),
@@ -55,18 +57,35 @@ interface ActaEditSheetProps {
 export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditSheetProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const parseNumeroActa = (fullNum: string) => {
+        if (!fullNum) return { libro: "", acta: "" };
+        const parts = fullNum.split("-");
+        if (parts.length >= 3) {
+            return {
+                libro: parts[1].replace(/^L/, ""), // Quitar 'L' inicial
+                acta: parts[2]
+            };
+        }
+        return { libro: "", acta: fullNum };
+    };
+
+    const initialParsed = parseNumeroActa(acta?.numero_acta || "");
+
     const form = useForm<ActaFormData>({
         resolver: zodResolver(actaSchema) as any,
         defaultValues: {
             tipo_acta: (acta?.tipo_acta as 'NACIMIENTO' | 'MATRIMONIO' | 'DEFUNCION') || 'NACIMIENTO',
-            numero_acta: acta?.numero_acta || "",
+            libro: initialParsed.libro,
+            numero_acta: initialParsed.acta,
             anio: acta?.anio || new Date().getFullYear(),
             fecha_acta: acta?.fecha_acta ? acta.fecha_acta.split('T')[0] : "",
             observaciones: acta?.observaciones || "",
         },
     });
 
-    const numActaValue = form.watch("numero_acta");
+    const libroValue = form.watch("libro");
+    const numeroValue = form.watch("numero_acta");
+    const tipoValue = form.watch("tipo_acta");
     const fechaActaValue = form.watch("fecha_acta");
 
     // Sincronizar año automáticamente con la fecha del acta
@@ -82,9 +101,11 @@ export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditShee
     // Sincronización del formulario con el estado del Sheet y el Acta
     useEffect(() => {
         if (isOpen && acta) {
+            const parsed = parseNumeroActa(acta.numero_acta);
             form.reset({
                 tipo_acta: acta.tipo_acta,
-                numero_acta: acta.numero_acta,
+                libro: parsed.libro,
+                numero_acta: parsed.acta,
                 anio: acta.anio,
                 fecha_acta: acta.fecha_acta.split('T')[0],
                 observaciones: acta.observaciones || "",
@@ -92,6 +113,7 @@ export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditShee
         } else if (!isOpen) {
             form.reset({
                 tipo_acta: 'NACIMIENTO',
+                libro: "",
                 numero_acta: "",
                 anio: new Date().getFullYear(),
                 fecha_acta: "",
@@ -103,31 +125,55 @@ export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditShee
 
     // Validación de duplicados al editar (solo si cambia el número respecto al original)
     useEffect(() => {
-        if (numActaValue && numActaValue !== acta?.numero_acta) {
-            const timer = setTimeout(() => {
-                actasService.getAll({ numero: numActaValue.trim() })
-                    .then(actas => {
-                        const existente = actas.data.find(a =>
-                            String(a.numero_acta).trim() === numActaValue.trim() && a.id !== acta?.id
-                        );
-                        if (existente) {
-                            toast.warning(`Atención: El acta N° ${numActaValue} ya existe.`, {
-                                description: `Pertenece a otro registro (${existente.tipo_acta}). Evite duplicados.`,
-                                duration: 8000
-                            });
-                        }
-                    });
-            }, 800);
-            return () => clearTimeout(timer);
+        if (numeroValue && libroValue) {
+            const getPrefix = (tipo: string) => {
+                switch (tipo) {
+                    case 'NACIMIENTO': return 'NAC';
+                    case 'MATRIMONIO': return 'MAT';
+                    case 'DEFUNCION': return 'DEF';
+                    default: return 'ACT';
+                }
+            };
+            const formatted = `${getPrefix(tipoValue)}-L${libroValue}-${numeroValue}`.toUpperCase();
+
+            if (formatted !== acta?.numero_acta?.toUpperCase()) {
+                const timer = setTimeout(() => {
+                    actasService.getAll({ numero: formatted })
+                        .then(response => {
+                            const actas = response.data || [];
+                            const existente = actas.find(a =>
+                                String(a.numero_acta).toUpperCase() === formatted && a.id !== acta?.id
+                            );
+                            if (existente) {
+                                toast.warning(`Atención: El acta N° ${formatted} ya existe.`, {
+                                    description: `Pertenece a otro registro (${existente.tipo_acta}). Evite duplicados.`,
+                                    duration: 8000
+                                });
+                            }
+                        });
+                }, 800);
+                return () => clearTimeout(timer);
+            }
         }
-    }, [numActaValue, acta, isOpen]);
+    }, [numeroValue, libroValue, tipoValue, acta, isOpen]);
 
     const onSubmit = async (values: ActaFormData) => {
         if (!acta) return;
         setIsSubmitting(true);
         try {
+            const getPrefix = (tipo: string) => {
+                switch (tipo) {
+                    case 'NACIMIENTO': return 'NAC';
+                    case 'MATRIMONIO': return 'MAT';
+                    case 'DEFUNCION': return 'DEF';
+                    default: return 'ACT';
+                }
+            };
+            const fullNumeroActa = `${getPrefix(values.tipo_acta)}-L${values.libro}-${values.numero_acta}`.toUpperCase();
+
             await actasService.update(acta.id, {
                 ...values,
+                numero_acta: fullNumeroActa,
                 persona_principal_id: acta.persona_principal_id
             });
             toast.success("Acta actualizada correctamente");
@@ -188,33 +234,59 @@ export function ActaEditSheet({ isOpen, onClose, onSuccess, acta }: ActaEditShee
                                 )}
                             />
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="numero_acta"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="std-label mb-1.5">N° Acta</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} className="std-input h-10 font-bold tracking-widest uppercase" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="anio"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="std-label mb-1.5">Año</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" {...field} disabled className="std-input h-10 bg-muted/50 text-muted-foreground font-bold" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                <div className="md:col-span-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="libro"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="std-label mb-1.5 font-bold text-primary italic">Libro</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} className="std-input h-10 font-bold bg-primary/5 text-center" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="md:col-span-5">
+                                    <FormField
+                                        control={form.control}
+                                        name="numero_acta"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex items-center justify-between mb-1.5 ">
+                                                    <FormLabel className="std-label m-0 p-0 leading-none">N° Acta</FormLabel>
+                                                    {(libroValue || numeroValue) && (
+                                                        <Badge variant="outline" className="h-4 px-1 text-[8px] bg-primary/5 text-primary border-primary/20 font-bold">
+                                                            PREVIEW: {tipoValue.substring(0, 3)}-L{libroValue || '?'}-{numeroValue || '?'}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <FormControl>
+                                                    <Input {...field} className="std-input h-10 font-bold tracking-widest uppercase" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="md:col-span-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="anio"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="std-label mb-1.5">Año</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} disabled className="std-input h-10 bg-muted/50 text-muted-foreground font-bold" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </div>
 
                             <FormField
