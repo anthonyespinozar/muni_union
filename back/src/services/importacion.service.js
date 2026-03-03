@@ -20,7 +20,7 @@ const buildNumeroActa = (tipo, libro, numero) => {
 //   2. Crea acta (si no existe ese numero_acta)
 //   3. Vincula documento digital (si se recibe el archivo)
 // -----------------------------------------------------------------------------
-export const importarActasMasivo = async (filas, archivos, usuario_id) => {
+export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usuario_id) => {
     const resultados = [];
     const client = await pool.connect();
 
@@ -40,21 +40,17 @@ export const importarActasMasivo = async (filas, archivos, usuario_id) => {
                 throw new Error(`Campos obligatorios vacíos: ${faltantes.join(", ")}`);
             }
 
-            // ---- 1. BUSCAR O CREAR PERSONA ----
             const fullNumeroActa = buildNumeroActa(fila.tipo_acta, fila.libro, fila.numero_acta);
 
-            // Primero buscar por DNI si existe
+            // ---- 1. BUSCAR O CREAR PERSONA ----
             if (fila.dni) {
                 const existente = await client.query(
                     "SELECT id FROM personas WHERE dni = $1 AND fecha_eliminacion IS NULL LIMIT 1",
                     [fila.dni.trim()]
                 );
-                if (existente.rows.length > 0) {
-                    personaId = existente.rows[0].id;
-                }
+                if (existente.rows.length > 0) personaId = existente.rows[0].id;
             }
 
-            // Si no se encontró por DNI, buscar por nombres completos
             if (!personaId) {
                 const existenteNombre = await client.query(
                     `SELECT id FROM personas 
@@ -64,12 +60,9 @@ export const importarActasMasivo = async (filas, archivos, usuario_id) => {
                        AND fecha_eliminacion IS NULL LIMIT 1`,
                     [fila.nombres.trim(), fila.apellido_paterno.trim(), fila.apellido_materno.trim()]
                 );
-                if (existenteNombre.rows.length > 0) {
-                    personaId = existenteNombre.rows[0].id;
-                }
+                if (existenteNombre.rows.length > 0) personaId = existenteNombre.rows[0].id;
             }
 
-            // Si no existe, crear nueva persona
             if (!personaId) {
                 const nuevaPersona = await client.query(
                     `INSERT INTO personas 
@@ -118,20 +111,29 @@ export const importarActasMasivo = async (filas, archivos, usuario_id) => {
             );
             actaId = nuevaActa.rows[0].id;
 
-            // ---- 4. VINCULAR DOCUMENTO DIGITAL (si se envió el archivo) ----
-            const archivoKey = fila.nombre_archivo_pdf?.trim();
-            const archivoEnviado = archivos?.[archivoKey];
+            // ---- 4. BUSCAR Y VINCULAR DOCUMENTO ----
+            // Primero busca por carpeta_ruta + nombre, luego solo por nombre
+            const nombreArchivo = fila.nombre_archivo_pdf?.trim();
+            let archivoEncontrado = null;
+            if (nombreArchivo) {
+                const carpeta = fila.carpeta_ruta?.trim().replace(/\\/g, "/").replace(/\/$/, "");
+                if (carpeta && archivosMap[`${carpeta}/${nombreArchivo}`]) {
+                    archivoEncontrado = archivosMap[`${carpeta}/${nombreArchivo}`];
+                } else if (soloNombreMap[nombreArchivo]) {
+                    archivoEncontrado = soloNombreMap[nombreArchivo];
+                }
+            }
 
-            if (archivoEnviado) {
+            if (archivoEncontrado) {
                 await client.query(
                     `INSERT INTO documentos_digitales (acta_id, nombre_archivo, ruta_archivo, tipo_archivo, hash_archivo, usuario_registro)
                      VALUES ($1, $2, $3, $4, $5, $6)`,
                     [
                         actaId,
-                        archivoEnviado.originalname,
-                        archivoEnviado.path,
-                        archivoEnviado.mimetype,
-                        crypto.createHash("md5").update(fs.readFileSync(archivoEnviado.path)).digest("hex"),
+                        archivoEncontrado.originalname,
+                        archivoEncontrado.path,
+                        archivoEncontrado.mimetype,
+                        crypto.createHash("md5").update(fs.readFileSync(archivoEncontrado.path)).digest("hex"),
                         usuario_id
                     ]
                 );
@@ -144,7 +146,7 @@ export const importarActasMasivo = async (filas, archivos, usuario_id) => {
                 estado: "OK",
                 acta: fullNumeroActa,
                 persona: `${fila.apellido_paterno} ${fila.apellido_materno}, ${fila.nombres}`,
-                con_documento: !!archivoEnviado,
+                con_documento: !!archivoEncontrado,
                 persona_id: personaId,
                 acta_id: actaId
             });
@@ -154,7 +156,7 @@ export const importarActasMasivo = async (filas, archivos, usuario_id) => {
             resultados.push({
                 fila: rowNum,
                 estado: "ERROR",
-                acta: fila.nombre_archivo_pdf || `Fila ${rowNum}`,
+                acta: `${fila.tipo_acta || "?"}-L${fila.libro || "?"}-${fila.numero_acta || "?"}`,
                 persona: `${fila.apellido_paterno || "?"} ${fila.apellido_materno || "?"}, ${fila.nombres || "?"}`,
                 error: error.message,
                 con_documento: false

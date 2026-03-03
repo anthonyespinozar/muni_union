@@ -13,11 +13,9 @@ const tempDir = "uploads/temp_import";
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-// ─── Configuración multer para recibir Excel + ZIP opcional ───────────────────
+// ─── Configuración multer ─────────────────────────────────────────────────────
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, tempDir);
-    },
+    destination: (req, file, cb) => cb(null, tempDir),
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname);
         cb(null, `import_${Date.now()}_${crypto.randomBytes(4).toString("hex")}${ext}`);
@@ -26,7 +24,7 @@ const storage = multer.diskStorage({
 
 export const uploadImport = multer({
     storage,
-    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB para ZIP con muchos PDFs
+    limits: { fileSize: 500 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = [".xlsx", ".xls", ".zip"];
         const ext = path.extname(file.originalname).toLowerCase();
@@ -37,28 +35,28 @@ export const uploadImport = multer({
     { name: "zip", maxCount: 1 }
 ]);
 
-// ─── Helper: Parsear Excel a array de objetos ─────────────────────────────────
+// ─── Helper: Parsear Excel ────────────────────────────────────────────────────
 const parsearExcel = (rutaArchivo) => {
     const workbook = XLSX.readFile(rutaArchivo);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const filas = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    // Normalizar claves (quitar espacios, lowercase)
     return filas
-        .filter(f => f.nombres || f.apellido_paterno) // Ignorar filas vacías
+        .filter(f => f.nombres || f.apellido_paterno)
         .map(f => {
             const norm = {};
             Object.keys(f).forEach(k => {
                 norm[k.trim().toLowerCase().replace(/ /g, "_")] = String(f[k]).trim();
             });
-            // Normalizar valores clave
             if (norm.tipo_acta) norm.tipo_acta = norm.tipo_acta.toUpperCase();
             if (norm.sexo) norm.sexo = norm.sexo.toUpperCase();
             return norm;
         });
 };
 
-// ─── Helper: Extraer ZIP y mapear archivos por nombre ─────────────────────────
+// ─── Helper: Extraer ZIP preservando ESTRUCTURA DE CARPETAS ──────────────────
+// Clave del mapa: "nacimientos/LIBRO 2/PRIMERA PARTE/Documento 1.pdf" (ruta relativa)
+// También guarda bajo solo el nombre para búsqueda de respaldo: "Documento 1.pdf"
 const extraerZip = async (rutaZip) => {
     const extractDir = path.join(tempDir, `zip_${Date.now()}`);
     fs.mkdirSync(extractDir, { recursive: true });
@@ -67,35 +65,69 @@ const extraerZip = async (rutaZip) => {
         .pipe(unzipper.Extract({ path: extractDir }))
         .promise();
 
-    // Mapear todos los archivos extraídos: { 'Documento 1.pdf': { path, originalname, mimetype } }
-    const archivosMap = {};
-    const walkDir = (dir) => {
+    const archivosMap = {};   // clave = ruta/relativa/hasta/archivo.pdf (normalizado a /)
+    const soloNombreMap = {}; // clave = nombre.pdf (fallback si no hay carpeta_ruta)
+
+    const walkDir = (dir, rutaRelativa = "") => {
         const items = fs.readdirSync(dir);
         for (const item of items) {
             const fullPath = path.join(dir, item);
+            const relPath = rutaRelativa ? `${rutaRelativa}/${item}` : item;
+
             if (fs.statSync(fullPath).isDirectory()) {
-                walkDir(fullPath);
+                walkDir(fullPath, relPath);
             } else {
                 const ext = path.extname(item).toLowerCase();
-                const mime = ext === ".pdf" ? "application/pdf" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
-                // Moverlo a uploads/documentos con nombre único
+                const tiposPermitidos = [".pdf", ".jpg", ".jpeg", ".png"];
+                if (!tiposPermitidos.includes(ext)) continue;
+
+                const mime = ext === ".pdf" ? "application/pdf"
+                    : (ext === ".jpg" || ext === ".jpeg") ? "image/jpeg" : "image/png";
+
+                // Guardar en uploads/documentos con nombre único
                 const uniqueName = `${Date.now()}_${crypto.randomBytes(4).toString("hex")}${ext}`;
                 const destPath = path.join(uploadDir, uniqueName);
                 fs.copyFileSync(fullPath, destPath);
-                archivosMap[item] = {
-                    originalname: item,
-                    path: destPath,
-                    mimetype: mime
-                };
+
+                const fileInfo = { originalname: item, path: destPath, mimetype: mime };
+
+                // Clave completa con ruta relativa (normalizar separadores a /)
+                const claveCompleta = relPath.replace(/\\/g, "/");
+                archivosMap[claveCompleta] = fileInfo;
+
+                // Clave solo por nombre de archivo (fallback)
+                // Si hay colisión de nombre, el último gana — por eso la clave completa es preferida
+                soloNombreMap[item] = fileInfo;
             }
         }
     };
     walkDir(extractDir);
 
-    // Limpiar directorio temporal de extracción
+    // Limpiar temporal
     fs.rmSync(extractDir, { recursive: true, force: true });
 
-    return archivosMap;
+    return { archivosMap, soloNombreMap };
+};
+
+// ─── Helper: Construir clave de búsqueda de archivo ──────────────────────────
+// Busca el archivo usando carpeta_ruta + nombre_archivo_pdf primero,
+// y si no lo encuentra usa solo el nombre como respaldo.
+export const buscarArchivo = (fila, archivosMap, soloNombreMap) => {
+    const nombre = fila.nombre_archivo_pdf?.trim();
+    if (!nombre) return null;
+
+    const carpeta = fila.carpeta_ruta?.trim().replace(/\\/g, "/").replace(/\/$/, "");
+
+    // Intento 1: carpeta_ruta + nombre (ruta completa relativa)
+    if (carpeta) {
+        const claveCompleta = `${carpeta}/${nombre}`;
+        if (archivosMap[claveCompleta]) return archivosMap[claveCompleta];
+    }
+
+    // Intento 2: Solo el nombre del archivo
+    if (soloNombreMap[nombre]) return soloNombreMap[nombre];
+
+    return null;
 };
 
 // ─── ENDPOINT PRINCIPAL: Importar ─────────────────────────────────────────────
@@ -110,7 +142,6 @@ export const importarMasivo = async (req, res) => {
         const rutaExcel = req.files.excel[0].path;
         tempFiles.push(rutaExcel);
 
-        // Parsear Excel
         let filas;
         try {
             filas = parsearExcel(rutaExcel);
@@ -119,21 +150,22 @@ export const importarMasivo = async (req, res) => {
         }
 
         if (filas.length === 0) {
-            return res.status(400).json({ message: "El Excel no contiene datos válidos (verifique que las columnas tengan los nombres correctos)." });
+            return res.status(400).json({ message: "El Excel no contiene datos válidos. Verifique que las columnas tengan los nombres correctos." });
         }
 
-        // Extraer ZIP si se envió
+        // Extraer ZIP si se envió — ahora con soporte de estructura de carpetas
         let archivosMap = {};
+        let soloNombreMap = {};
         if (req.files?.zip?.[0]) {
             const rutaZip = req.files.zip[0].path;
             tempFiles.push(rutaZip);
-            archivosMap = await extraerZip(rutaZip);
+            ({ archivosMap, soloNombreMap } = await extraerZip(rutaZip));
         }
 
-        // Procesar importación
-        const resultados = await importacionService.importarActasMasivo(filas, archivosMap, req.user.id);
+        const resultados = await importacionService.importarActasMasivo(
+            filas, archivosMap, soloNombreMap, req.user.id
+        );
 
-        // Auditoría
         const exitosos = resultados.filter(r => r.estado === "OK").length;
         await registrarAccion({
             usuario_id: req.user.id,
@@ -141,7 +173,7 @@ export const importarMasivo = async (req, res) => {
             operacion: "IMPORT",
             registro_id: 0,
             ip: req.ip,
-            descripcion: `Carga masiva: ${exitosos} actas importadas de ${filas.length} filas`
+            descripcion: `Carga masiva: ${exitosos}/${filas.length} actas importadas`
         });
 
         return res.json({
@@ -155,7 +187,6 @@ export const importarMasivo = async (req, res) => {
         console.error("Error en importación masiva:", error);
         return res.status(500).json({ message: `Error interno: ${error.message}` });
     } finally {
-        // Limpiar archivos temporales (Excel y ZIP)
         for (const f of tempFiles) {
             if (fs.existsSync(f)) fs.unlinkSync(f);
         }

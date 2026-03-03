@@ -136,19 +136,36 @@ export default function CargaMasivaPage() {
 
             {/* INSTRUCCIONES */}
             <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 rounded-2xl">
-                <CardContent className="p-5">
+                <CardContent className="p-5 space-y-4">
                     <div className="flex gap-3">
                         <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="space-y-2 text-sm">
-                            <p className="font-bold text-amber-800 dark:text-amber-400">¿Cómo preparar tu carga?</p>
-                            <ol className="list-decimal ml-4 space-y-1 text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
-                                <li>Descarga la <strong>Plantilla Excel</strong> y llena los datos de cada acta (un acta por fila).</li>
-                                <li>En la columna <strong>nombre_archivo_pdf</strong> escribe el nombre exacto del PDF escaneado que corresponde a esa fila (ej: <code>Documento 1.pdf</code>).</li>
-                                <li>Reúne todos los PDFs de un libro en una sola carpeta y crea un <strong>ZIP</strong> con ellos.</li>
-                                <li>Sube el Excel y el ZIP juntos. El sistema emparejará cada fila con su PDF automáticamente.</li>
-                                <li className="font-semibold">Si no tienes el PDF aún, puedes subir solo el Excel. Podrás adjuntar el PDF después.</li>
+                        <div className="space-y-2">
+                            <p className="font-bold text-amber-800 dark:text-amber-400 text-sm">¿Cómo preparar tu carga?</p>
+                            <ol className="list-decimal ml-4 space-y-1.5 text-amber-700 dark:text-amber-300 text-xs leading-relaxed">
+                                <li>Descarga la <strong>Plantilla Excel</strong> y llena los datos de cada acta (una acta = una fila).</li>
+                                <li>En <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">carpeta_ruta</code>: escribe la ruta relativa dentro del ZIP donde está el PDF.<br />
+                                    <span className="text-amber-600">Ej: <code>nacimientos/LIBRO 2/PRIMERA PARTE</code></span></li>
+                                <li>En <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">nombre_archivo_pdf</code>: escribe el nombre exacto del PDF.<br />
+                                    <span className="text-amber-600">Ej: <code>Documento 1.pdf</code></span></li>
+                                <li className="font-semibold">Crea el ZIP <strong>desde la carpeta raíz</strong> que contiene todas las subcarpetas de libros, manteniendo la estructura de carpetas intacta.</li>
+                                <li>Si no tienes PDFs aún, deja esas columnas en blanco. Puedes adjuntarlos después desde la tabla de actas.</li>
                             </ol>
                         </div>
+                    </div>
+
+                    {/* Diagrama visual de la estructura */}
+                    <div className="bg-amber-100/60 dark:bg-amber-900/30 rounded-xl p-4 text-xs font-mono space-y-0.5 text-amber-900 dark:text-amber-200">
+                        <p className="font-bold mb-2 non-mono font-sans text-amber-800">📁 Estructura de tu ZIP:</p>
+                        <p>📦 <strong>mi_carga.zip</strong></p>
+                        <p className="ml-4">📂 nacimientos/</p>
+                        <p className="ml-8">📂 LIBRO 1/</p>
+                        <p className="ml-12">📂 PRIMERA PARTE/</p>
+                        <p className="ml-16 text-emerald-700 dark:text-emerald-400">📄 Documento 1.pdf  <span className="text-amber-600">← carpeta_ruta: <em>nacimientos/LIBRO 1/PRIMERA PARTE</em></span></p>
+                        <p className="ml-16 text-emerald-700 dark:text-emerald-400">📄 Documento 2.pdf</p>
+                        <p className="ml-8">📂 LIBRO 2/</p>
+                        <p className="ml-12">📂 PRIMERA PARTE/</p>
+                        <p className="ml-16 text-emerald-700 dark:text-emerald-400">📄 Documento 1.pdf  <span className="text-amber-600">← carpeta_ruta: <em>nacimientos/LIBRO 2/PRIMERA PARTE</em></span></p>
+                        <p className="ml-4">📂 matrimonios/ ...</p>
                     </div>
                 </CardContent>
             </Card>
