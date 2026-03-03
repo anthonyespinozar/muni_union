@@ -156,7 +156,7 @@ export function ActasTable({
                     />
                 </div>
                 <Input
-                    placeholder="N° Acta (Ej: L1-45)"
+                    placeholder="N° Acta (Ej: NAC-L1-45)"
                     className="std-input"
                     value={searchNumero}
                     onChange={(e) => setSearchNumero(e.target.value)}

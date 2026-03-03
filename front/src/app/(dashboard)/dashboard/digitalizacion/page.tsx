@@ -176,7 +176,15 @@ export default function DigitalizacionPage() {
     // Validación de Acta Duplicada por Número (Preventiva)
     useEffect(() => {
         if (numActaValue && libroValue) {
-            const formattedNum = `L${libroValue}-${numActaValue}`;
+            const getPrefix = (tipo: string) => {
+                switch (tipo) {
+                    case 'NACIMIENTO': return 'NAC';
+                    case 'MATRIMONIO': return 'MAT';
+                    case 'DEFUNCION': return 'DEF';
+                    default: return 'ACT';
+                }
+            };
+            const formattedNum = `${getPrefix(tipoActaValue)}-L${libroValue}-${numActaValue}`;
             const timer = setTimeout(() => {
                 actasService.getAll({
                     numero: formattedNum
@@ -258,7 +266,15 @@ export default function DigitalizacionPage() {
             }
 
             // 2. Crear o Actualizar Acta
-            const fullNumeroActa = `L${values.libro}-${values.numero_acta}`.toUpperCase();
+            const getPrefix = (tipo: string) => {
+                switch (tipo) {
+                    case 'NACIMIENTO': return 'NAC';
+                    case 'MATRIMONIO': return 'MAT';
+                    case 'DEFUNCION': return 'DEF';
+                    default: return 'ACT';
+                }
+            };
+            const fullNumeroActa = `${getPrefix(values.tipo_acta)}-L${values.libro}-${values.numero_acta}`.toUpperCase();
 
             let currentActaId: number;
             if (actaEncontrada) {
