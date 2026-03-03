@@ -50,7 +50,8 @@ import { Acta } from "@/types/acta";
 
 const formSchema = z.object({
     // Persona
-    dni: z.string().optional().refine(v => !v || (v.length === 8 && /^\d+$/.test(v)), "DNI debe tener 8 números"),
+    tipo_documento: z.string().min(1, "Seleccione tipo"),
+    dni: z.string().max(15, "Máximo 15 caracteres").optional().or(z.literal("")),
     nombres: z.string().min(2, "Min. 2 caracteres").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     apellido_paterno: z.string().min(2, "Min. 2 caracteres").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
     apellido_materno: z.string().min(2, "Min. 2 caracteres").regex(/^[A-ZÁÉÍÓÚÑ ]+$/i, "Solo letras y espacios").transform(v => v.toUpperCase()),
@@ -75,9 +76,18 @@ export default function DigitalizacionPage() {
     const [personaEncontrada, setPersonaEncontrada] = useState<Persona | null>(null);
     const [actaEncontrada, setActaEncontrada] = useState<Acta | null>(null);
 
+    const [tiposDocumento, setTiposDocumento] = useState<{ id: number, nombre: string }[]>([]);
+
+    useEffect(() => {
+        personasService.getTiposDocumento()
+            .then(setTiposDocumento)
+            .catch(err => console.error("Error cargando tipos documento:", err));
+    }, []);
+
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
         defaultValues: {
+            tipo_documento: "DNI",
             dni: "",
             nombres: "",
             apellido_paterno: "",
@@ -112,12 +122,13 @@ export default function DigitalizacionPage() {
         }
     }, [fechaActaValue, form]);
 
-    // Autocompletado al digitar DNI
+    // Autocompletado al digitar DNI / Documento
     useEffect(() => {
-        if (dniValue?.length === 8) {
+        if (dniValue && dniValue.length >= 8) {
             personasService.checkDni(dniValue).then(p => {
                 if (p) {
                     setPersonaEncontrada(p);
+                    form.setValue("tipo_documento", p.tipo_documento || "DNI");
                     form.setValue("nombres", p.nombres);
                     form.setValue("apellido_paterno", p.apellido_paterno);
                     form.setValue("apellido_materno", p.apellido_materno);
@@ -125,7 +136,7 @@ export default function DigitalizacionPage() {
                     form.setValue("fecha_nacimiento", p.fecha_nacimiento?.split('T')[0] || "");
                     form.setValue("telefono", p.telefono || "");
                     form.setValue("persona_observaciones", p.observaciones || "");
-                    toast.info("Ciudadano identificado por DNI.");
+                    toast.info("Ciudadano identificado.");
                 } else {
                     // Si no se encuentra, limpiar datos previos para permitir registro nuevo
                     setPersonaEncontrada(null);
@@ -218,6 +229,7 @@ export default function DigitalizacionPage() {
             if (personaId) {
                 // Si la persona existe, actualizamos sus datos (corrección simultánea)
                 await personasService.update(personaId, {
+                    tipo_documento: values.tipo_documento,
                     nombres: values.nombres,
                     apellido_paterno: values.apellido_paterno,
                     apellido_materno: values.apellido_materno,
@@ -228,6 +240,7 @@ export default function DigitalizacionPage() {
                 });
             } else {
                 const newPersona = await personasService.create({
+                    tipo_documento: values.tipo_documento,
                     dni: values.dni,
                     nombres: values.nombres,
                     apellido_paterno: values.apellido_paterno,
@@ -315,18 +328,46 @@ export default function DigitalizacionPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="px-5 py-4 space-y-3.5">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="tipo_documento"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="std-label mb-1.5 uppercase font-bold text-[10px] text-primary">Tipo Doc.</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="std-input h-10 font-bold bg-muted/20 border-primary/20">
+                                                                <SelectValue placeholder="—" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {tiposDocumento.length > 0 ? (
+                                                                tiposDocumento.map((tipo) => (
+                                                                    <SelectItem key={tipo.id} value={tipo.nombre} className="font-semibold text-xs">
+                                                                        {tipo.nombre}
+                                                                    </SelectItem>
+                                                                ))
+                                                            ) : (
+                                                                <SelectItem value="DNI" className="font-semibold text-xs">DNI</SelectItem>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                         <FormField
                                             control={form.control}
                                             name="dni"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="std-label mb-1.5">N° Documento (DNI)</FormLabel>
+                                                    <FormLabel className="std-label mb-1.5">N° Documento</FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                            placeholder="8 dígitos..."
+                                                            placeholder="Número..."
                                                             {...field}
-                                                            maxLength={8}
+                                                            maxLength={15}
                                                             className="std-input text-sm font-semibold tracking-widest"
                                                         />
                                                     </FormControl>
