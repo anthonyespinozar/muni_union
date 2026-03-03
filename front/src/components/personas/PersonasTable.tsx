@@ -105,11 +105,18 @@ export function PersonasTable({
                             personas.map((persona) => (
                                 <TableRow key={persona.id} className="std-table-row">
                                     <TableCell className="std-table-cell">
-                                        {persona.dni ? (
-                                            <span className="data-console font-medium text-xs">{persona.dni}</span>
-                                        ) : (
-                                            <span className="text-muted-foreground/40 font-medium italic text-[10px] uppercase tracking-wide">Sin DNI</span>
-                                        )}
+                                        <div className="flex flex-col gap-1">
+                                            {persona.tipo_documento && (
+                                                <Badge variant="outline" className="w-fit text-[9px] font-black h-4 px-1 bg-primary/5 text-primary border-primary/20">
+                                                    {persona.tipo_documento}
+                                                </Badge>
+                                            )}
+                                            {persona.dni ? (
+                                                <span className="data-console font-medium text-xs tracking-tight">{persona.dni}</span>
+                                            ) : (
+                                                <span className="text-muted-foreground/40 font-medium italic text-[10px] uppercase tracking-wide">Sin Número</span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell className="std-table-cell">
                                         <div className="flex flex-col">

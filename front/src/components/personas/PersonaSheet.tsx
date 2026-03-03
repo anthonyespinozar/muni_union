@@ -34,7 +34,8 @@ import { Loader2, Save, UserPlus, Fingerprint, MapPin, Calendar, Phone } from "l
 import { Persona, PersonaInput } from "@/types/persona";
 
 const personaSchema = z.object({
-    dni: z.string().max(8, "Máximo 8 dígitos").regex(/^\d*$/, "Debe ser numérico").optional().or(z.literal("")),
+    tipo_documento: z.string().min(1, "Seleccione tipo"),
+    dni: z.string().max(15, "Máximo 15 caracteres").optional().or(z.literal("")),
     nombres: z.string().min(2, "Nombres son obligatorios"),
     apellido_paterno: z.string().min(2, "Apellido Paterno es obligatorio"),
     apellido_materno: z.string().min(2, "Apellido Materno es obligatorio"),
@@ -65,6 +66,7 @@ export function PersonaSheet({
     const form = useForm<PersonaFormValues>({
         resolver: zodResolver(personaSchema),
         defaultValues: {
+            tipo_documento: "DNI",
             dni: "",
             nombres: "",
             apellido_paterno: "",
@@ -87,6 +89,7 @@ export function PersonaSheet({
                 }
 
                 form.reset({
+                    tipo_documento: persona.tipo_documento || "DNI",
                     dni: persona.dni || "",
                     nombres: persona.nombres || "",
                     apellido_paterno: persona.apellido_paterno || "",
@@ -99,6 +102,7 @@ export function PersonaSheet({
                 });
             } else {
                 form.reset({
+                    tipo_documento: "DNI",
                     dni: "",
                     nombres: "",
                     apellido_paterno: "",
@@ -117,6 +121,7 @@ export function PersonaSheet({
         try {
             setIsSubmitting(true);
             const input: PersonaInput = {
+                tipo_documento: values.tipo_documento,
                 dni: values.dni || undefined,
                 nombres: values.nombres.toUpperCase(),
                 apellido_paterno: values.apellido_paterno.toUpperCase(),
@@ -170,17 +175,41 @@ export function PersonaSheet({
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
+                                    name="tipo_documento"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="std-label mb-1.5 uppercase font-bold text-[10px] text-primary tracking-wider">Tipo Doc.</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger className="std-input h-10 font-bold bg-muted/20 border-primary/20">
+                                                        <SelectValue placeholder="—" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="DNI" className="font-semibold">DNI</SelectItem>
+                                                    <SelectItem value="CNE" className="font-semibold">CARNET EXTR.</SelectItem>
+                                                    <SelectItem value="PASAPORTE" className="font-semibold">PASAPORTE</SelectItem>
+                                                    <SelectItem value="P. NACIMIENTO" className="font-semibold">P. NACIMIENTO</SelectItem>
+                                                    <SelectItem value="OTROS" className="font-semibold">OTROS</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
                                     name="dni"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="std-label flex items-center gap-2">
-                                                <Fingerprint className="h-3 w-3 text-primary" /> DNI
+                                                <Fingerprint className="h-3 w-3 text-primary" /> N° DOCUMENTO
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     {...field}
-                                                    placeholder="DNI O VACÍO"
-                                                    maxLength={8}
+                                                    placeholder="NÚMERO"
+                                                    maxLength={15}
                                                     className="std-input h-10 font-bold bg-muted/20"
                                                 />
                                             </FormControl>
@@ -188,12 +217,15 @@ export function PersonaSheet({
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="sexo"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="std-label mb-1.5">Sexo</FormLabel>
+                                            <FormLabel className="std-label mb-1.5 uppercase font-bold text-[10px] text-muted-foreground mr-2">Sexo</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger className="std-input h-10 font-bold">
@@ -205,6 +237,25 @@ export function PersonaSheet({
                                                     <SelectItem value="F" className="font-semibold">FEMENINO</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="fecha_nacimiento"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="std-label flex items-center gap-2">
+                                                <Calendar className="h-3 w-3 text-primary" /> F. Nacimiento
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    type="date"
+                                                    className="std-input h-10 font-semibold"
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -266,47 +317,26 @@ export function PersonaSheet({
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="fecha_nacimiento"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="std-label flex items-center gap-2">
-                                                <Calendar className="h-3 w-3 text-primary" /> F. Nacimiento
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    type="date"
-                                                    className="std-input h-10 font-semibold"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="telefono"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="std-label flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-primary" /> Teléfono
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="999..."
-                                                    maxLength={9}
-                                                    className="std-input h-10 font-semibold"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="telefono"
+                                render={({ field }) => (
+                                    <FormItem className="max-w-[200px]">
+                                        <FormLabel className="std-label flex items-center gap-2">
+                                            <Phone className="h-3 w-3 text-primary" /> Teléfono
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="999..."
+                                                maxLength={9}
+                                                className="std-input h-10 font-semibold"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             <FormField
                                 control={form.control}

@@ -1,5 +1,6 @@
 export interface Persona {
     id: number;
+    tipo_documento?: string; // DNI, CNE, PASAPORTE, etc.
     dni?: string; // Opcional para recién nacidos
     nombres: string;
     apellido_paterno: string;
@@ -14,6 +15,7 @@ export interface Persona {
 }
 
 export interface PersonaInput {
+    tipo_documento?: string;
     dni?: string;
     nombres: string;
     apellido_paterno: string;

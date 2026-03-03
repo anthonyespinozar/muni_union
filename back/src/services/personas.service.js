@@ -1,16 +1,16 @@
 import { pool } from "../config/db.js";
 
 export const crearPersona = async (datos, usuario_id) => {
-    const { dni, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones } = datos;
+    const { dni, tipo_documento, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones } = datos;
 
     const { rows } = await pool.query(
         `
     INSERT INTO personas 
-      (dni, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones, usuario_registro)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      (dni, tipo_documento, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones, usuario_registro)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
     `,
-        [dni || null, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento || null, telefono, direccion, observaciones, usuario_id]
+        [dni || null, tipo_documento || 'DNI', nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento || null, telefono, direccion, observaciones, usuario_id]
     );
 
     return rows[0];
@@ -56,25 +56,26 @@ export const obtenerPersonaPorId = async (id) => {
 };
 
 export const actualizarPersona = async (id, datos, usuario_id) => {
-    const { dni, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones } = datos;
+    const { dni, tipo_documento, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones } = datos;
 
     const { rows } = await pool.query(
         `
     UPDATE personas 
     SET 
       dni = COALESCE($1, dni),
-      nombres = COALESCE($2, nombres),
-      apellido_paterno = COALESCE($3, apellido_paterno),
-      apellido_materno = COALESCE($4, apellido_materno),
-      sexo = COALESCE($5, sexo),
-      fecha_nacimiento = COALESCE($6, fecha_nacimiento),
-      telefono = COALESCE($7, telefono),
-      direccion = COALESCE($8, direccion),
-      observaciones = COALESCE($9, observaciones)
-    WHERE id = $10 AND fecha_eliminacion IS NULL
+      tipo_documento = COALESCE($2, tipo_documento),
+      nombres = COALESCE($3, nombres),
+      apellido_paterno = COALESCE($4, apellido_paterno),
+      apellido_materno = COALESCE($5, apellido_materno),
+      sexo = COALESCE($6, sexo),
+      fecha_nacimiento = COALESCE($7, fecha_nacimiento),
+      telefono = COALESCE($8, telefono),
+      direccion = COALESCE($9, direccion),
+      observaciones = COALESCE($10, observaciones)
+    WHERE id = $11 AND fecha_eliminacion IS NULL
     RETURNING *
     `,
-        [dni || null, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento || null, telefono, direccion, observaciones, id]
+        [dni || null, tipo_documento, nombres, apellido_paterno, apellido_materno, sexo, fecha_nacimiento || null, telefono, direccion, observaciones, id]
     );
 
     return rows[0];
