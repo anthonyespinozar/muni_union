@@ -630,7 +630,7 @@ export default function DigitalizacionPage() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <div className="flex items-center justify-between mb-1.5 ">
-                                                            <FormLabel className="std-label m-0 p-0 leading-none">N° PAGINA</FormLabel>
+                                                            <FormLabel className="std-label m-0 p-0 leading-none">N° DE ACTA</FormLabel>
                                                             {(libroValue || numActaValue) && (
                                                                 <Badge variant="outline" className="h-4 px-1 text-[8px] bg-primary/5 text-primary border-primary/20 font-bold">
                                                                     PREVIEW: {tipoActaValue.substring(0, 3)}-L{libroValue || '?'}-{numActaValue || '?'}
