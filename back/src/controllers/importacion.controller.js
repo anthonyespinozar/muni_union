@@ -88,8 +88,10 @@ const parsearExcel = (rutaArchivo) => {
 };
 
 // ─── Helper: Extraer ZIP preservando ESTRUCTURA DE CARPETAS ──────────────────
-// Clave del mapa: "nacimientos/LIBRO 2/PRIMERA PARTE/Documento 1.pdf" (ruta relativa)
-// También guarda bajo solo el nombre para búsqueda de respaldo: "Documento 1.pdf"
+// Soporta dos formas de comprimir en Windows:
+//   A) Seleccionas el contenido → ZIP sin carpeta raíz: matrimonios/LIBRO 1/Documento 1.pdf
+//   B) Comprimes la carpeta → ZIP con carpeta raíz: prueba/matrimonios/LIBRO 1/Documento 1.pdf
+// El sistema detecta el caso B y también guarda sin el prefijo de carpeta raíz.
 const extraerZip = async (rutaZip) => {
     const extractDir = path.join(tempDir, `zip_${Date.now()}`);
     fs.mkdirSync(extractDir, { recursive: true });
@@ -98,8 +100,19 @@ const extraerZip = async (rutaZip) => {
         .pipe(unzipper.Extract({ path: extractDir }))
         .promise();
 
-    const archivosMap = {};   // clave = ruta/relativa/hasta/archivo.pdf (normalizado a /)
-    const soloNombreMap = {}; // clave = nombre.pdf (fallback si no hay carpeta_ruta)
+    // Detectar si hay una sola carpeta raíz envolvente
+    // Ej: si el ZIP tiene todo dentro de "prueba/", la raíz es "prueba"
+    const topItems = fs.readdirSync(extractDir);
+    let carpetaRaiz = null;
+    if (topItems.length === 1) {
+        const topPath = path.join(extractDir, topItems[0]);
+        if (fs.statSync(topPath).isDirectory()) {
+            carpetaRaiz = topItems[0]; // ej: "prueba"
+        }
+    }
+
+    const archivosMap = {};   // clave = ruta relativa completa
+    const soloNombreMap = {}; // clave = solo nombre del archivo (fallback)
 
     const walkDir = (dir, rutaRelativa = "") => {
         const items = fs.readdirSync(dir);
@@ -117,30 +130,37 @@ const extraerZip = async (rutaZip) => {
                 const mime = ext === ".pdf" ? "application/pdf"
                     : (ext === ".jpg" || ext === ".jpeg") ? "image/jpeg" : "image/png";
 
-                // Guardar en uploads/documentos con nombre único
                 const uniqueName = `${Date.now()}_${crypto.randomBytes(4).toString("hex")}${ext}`;
                 const destPath = path.join(uploadDir, uniqueName);
                 fs.copyFileSync(fullPath, destPath);
 
                 const fileInfo = { originalname: item, path: destPath, mimetype: mime };
 
-                // Clave completa con ruta relativa (normalizar separadores a /)
+                // Clave 1: ruta completa tal como viene en el ZIP
                 const claveCompleta = relPath.replace(/\\/g, "/");
                 archivosMap[claveCompleta] = fileInfo;
 
-                // Clave solo por nombre de archivo (fallback)
-                // Si hay colisión de nombre, el último gana — por eso la clave completa es preferida
+                // Clave 2: si detectamos carpeta raíz envolvente, guardar SIN ese prefijo
+                // "prueba/matrimonios/LIBRO 1/Documento 1.pdf" → "matrimonios/LIBRO 1/Documento 1.pdf"
+                if (carpetaRaiz) {
+                    const claveSinRaiz = claveCompleta.replace(new RegExp(`^${carpetaRaiz}/`), "");
+                    if (claveSinRaiz !== claveCompleta) {
+                        archivosMap[claveSinRaiz] = fileInfo;
+                    }
+                }
+
+                // Clave 3: solo el nombre del archivo (último recurso)
                 soloNombreMap[item] = fileInfo;
             }
         }
     };
     walkDir(extractDir);
 
-    // Limpiar temporal
     fs.rmSync(extractDir, { recursive: true, force: true });
 
     return { archivosMap, soloNombreMap };
 };
+
 
 // ─── Helper: Construir clave de búsqueda de archivo ──────────────────────────
 // Busca el archivo usando carpeta_ruta + nombre_archivo_pdf primero,
