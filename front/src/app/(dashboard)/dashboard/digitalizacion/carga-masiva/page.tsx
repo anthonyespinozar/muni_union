@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import api from "@/utils/api";
+import * as XLSX from "xlsx";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,35 @@ export default function CargaMasivaPage() {
         }
     };
 
+    const exportarExcelReporte = () => {
+        if (!resumen) return;
+
+        const dataArr = resumen.resultados.map(r => ({
+            "FILA": r.fila,
+            "ESTADO": r.estado,
+            "ACTA": r.acta,
+            "CIUDADANO": r.persona,
+            "VINCULO PDF": r.con_documento ? "SI" : "NO",
+            "DETALLE/ERROR": r.error || "Operación exitosa"
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataArr);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Reporte Importación");
+
+        // Ajustar anchos
+        ws["!cols"] = [
+            { wch: 8 },
+            { wch: 10 },
+            { wch: 30 },
+            { wch: 40 },
+            { wch: 15 },
+            { wch: 60 }
+        ];
+
+        XLSX.writeFile(wb, `Reporte_Importacion_${Date.now()}.xlsx`);
+    };
+
     const porcentajeExito = resumen ? Math.round((resumen.exitosos / resumen.total) * 100) : 0;
 
     return (
@@ -146,48 +176,58 @@ export default function CargaMasivaPage() {
                 </div>
             </div>
 
-            {/* INSTRUCCIONES */}
-            <Card className="border-emerald-100 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50 dark:border-slate-800 rounded-3xl shadow-xl shadow-emerald-500/5">
-                <CardContent className="p-6 space-y-6">
-                    <div className="flex gap-4">
-                        <div className="bg-amber-100 dark:bg-amber-950/40 p-3 rounded-2xl h-fit">
-                            <Info className="h-6 w-6 text-amber-600 flex-shrink-0" />
-                        </div>
-                        <div className="space-y-3">
-                            <div>
-                                <h3 className="font-bold text-slate-800 dark:text-slate-200 text-lg">Guía de Importación Inteligente</h3>
-                                <p className="text-sm text-slate-500 font-medium">Sigue estos pasos para una carga 100% exitosa.</p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <ul className="space-y-2.5 text-slate-600 dark:text-slate-400 text-xs font-medium list-none">
-                                    <li className="flex gap-2">
-                                        <div className="bg-emerald-500 h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0" />
-                                        <span>Llena el Excel: Una fila por cada acta de <strong>Nacimiento, Matrimonio o Defunción</strong>.</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <div className="bg-emerald-500 h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0" />
-                                        <span>Ruta ZIP: Indica la carpeta exacta donde está el PDF (ej: <code>defunciones/2023/LIBRO 1</code>).</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <div className="bg-emerald-500 h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0" />
-                                        <span>Nombres Reales: El sistema reconoce automáticamente <strong>PART. NACIMIENTO, DNI</strong>, etc.</span>
-                                    </li>
-                                </ul>
-                                <div className="bg-slate-100/80 dark:bg-slate-800/50 rounded-2xl p-4 text-[11px] font-mono border border-slate-200 dark:border-slate-700">
-                                    <p className="text-slate-400 mb-2 uppercase tracking-widest text-[9px] font-bold font-sans">Estructura del ZIP Sugerida</p>
-                                    <div className="space-y-1">
-                                        <p className="text-emerald-600 dark:text-emerald-400 font-bold">📦 carga_marzo.zip</p>
-                                        <p className="ml-4 text-slate-500">📂 nacimientos / 📂 matrimonios / 📂 defunciones</p>
-                                        <p className="ml-8 text-slate-500">📂 LIBRO 1 / 📂 1990</p>
-                                        <p className="ml-12 text-blue-600 dark:text-blue-400">📄 acta_45.pdf (Ruta: <code>defunciones/1990</code>)</p>
-                                    </div>
-                                </div>
-                            </div>
+            {/* GUÍA RÁPIDA DE IMPORTACIÓN */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                    { step: "01", title: "PREPARA EL EXCEL", desc: "Usa la plantilla oficial con todos los campos obligatorios." },
+                    { step: "02", title: "ORGANIZA EL ZIP", desc: "Sube tus PDFs/Imágenes en un ZIP con las rutas correctas." },
+                    { step: "03", title: "VERIFICA Y CARGA", desc: "Revisa el reporte final para corregir posibles incidencias." }
+                ].map((item, i) => (
+                    <div key={i} className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800 p-4 rounded-2xl flex gap-4 items-start group hover:border-emerald-500/30 transition-all">
+                        <span className="text-xl font-black text-emerald-500/20 group-hover:text-emerald-500/40 transition-colors leading-none mt-1">{item.step}</span>
+                        <div className="space-y-1">
+                            <h4 className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">{item.title}</h4>
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{item.desc}</p>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                ))}
+            </div>
+
+            {/* BARRA DE PROGRESO ESTRATÉGICA (DURANTE LA CARGA) */}
+            {loading && (
+                <div className="w-full bg-slate-900/95 backdrop-blur-xl p-6 rounded-[32px] border border-emerald-500/20 shadow-2xl space-y-4 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex justify-between items-end px-1">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest">
+                                    {uploadProgress < 100 ? "Fase 1: Transmisión de Datos" : "Fase 2: Registro en Servidor"}
+                                </p>
+                            </div>
+                            <p className="text-xs font-bold text-slate-300">
+                                {uploadProgress < 100
+                                    ? "Sincronizando archivos con el sistema central..."
+                                    : "Procesando registros de acta, por favor espere."}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-2xl font-black text-emerald-400">{uploadProgress}%</span>
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Progreso</p>
+                        </div>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                        <div
+                            className={cn(
+                                "h-full rounded-full transition-all duration-700",
+                                uploadProgress < 100
+                                    ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                                    : "bg-blue-500 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                            )}
+                            style={{ width: `${uploadProgress}%` }}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* ZONA DE CARGA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -276,39 +316,10 @@ export default function CargaMasivaPage() {
 
             {/* BOTÓN IMPORTAR */}
             <div className="flex flex-col items-center gap-6 py-6 w-full max-w-lg mx-auto">
-                {loading && (
-                    <div className="w-full space-y-3 animate-in fade-in zoom-in-95 duration-300">
-                        <div className="flex justify-between items-end px-1">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
-                                    {uploadProgress < 100 ? "Transmitiendo Archivos" : "Servidor Procesando"}
-                                </p>
-                                <p className="text-xs font-bold text-slate-500">
-                                    {uploadProgress < 100
-                                        ? "Enviando datos al servidor central..."
-                                        : "Validando registros y vinculando documentos..."}
-                                </p>
-                            </div>
-                            <span className="text-xl font-black text-emerald-600">{uploadProgress}%</span>
-                        </div>
-                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200/50 shadow-inner">
-                            <div
-                                className={cn(
-                                    "h-full rounded-full transition-all duration-300 shadow-md",
-                                    uploadProgress < 100
-                                        ? "bg-emerald-500 shadow-emerald-500/30"
-                                        : "bg-blue-600 shadow-blue-500/30 animate-pulse"
-                                )}
-                                style={{ width: `${uploadProgress}%` }}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {!resumen && (
+                {!resumen && !loading && (
                     <Button
                         onClick={handleImportar}
-                        disabled={!excelFile || loading}
+                        disabled={!excelFile}
                         className={cn(
                             "h-16 px-16 group relative overflow-hidden transition-all duration-500 rounded-3xl shadow-2xl",
                             excelFile ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25" : "bg-slate-200 text-slate-400 shadow-none border-none"
@@ -316,17 +327,8 @@ export default function CargaMasivaPage() {
                     >
                         <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                         <div className="relative flex items-center gap-4 text-lg font-black uppercase tracking-[0.2em]">
-                            {loading ? (
-                                <>
-                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                    <span>{uploadProgress < 100 ? "SUBIENDO..." : "TRABAJANDO..."}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="h-6 w-6 group-hover:-translate-y-1 transition-transform" />
-                                    <span>INICIAR CARGA</span>
-                                </>
-                            )}
+                            <Upload className="h-6 w-6 group-hover:-translate-y-1 transition-transform" />
+                            <span>INICIAR CARGA</span>
                         </div>
                     </Button>
                 )}
@@ -348,20 +350,11 @@ export default function CargaMasivaPage() {
 
                             <div className="flex gap-3">
                                 <Button
-                                    size="sm"
                                     variant="outline"
-                                    className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 font-bold rounded-xl h-11 px-6 shadow-sm flex items-center gap-2"
-                                    onClick={() => toast.info("Generando reporte Excel...", { description: "Funcionalidad de exportación en desarrollo." })}
+                                    className="h-11 px-7 border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                                    onClick={exportarExcelReporte}
                                 >
-                                    <Download className="h-4 w-4" /> REPORTE XLS
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="bg-white hover:bg-slate-50 border-slate-200 text-slate-600 font-bold rounded-xl h-11 px-6 shadow-sm flex items-center gap-2"
-                                    onClick={() => toast.info("Generando comprobante PDF...", { description: "Funcionalidad de exportación en desarrollo." })}
-                                >
-                                    <FileText className="h-4 w-4" /> RESUMEN PDF
+                                    <Download className="h-5 w-5" /> GENERAR REPORTE EXCEL
                                 </Button>
                             </div>
                         </div>
@@ -374,33 +367,39 @@ export default function CargaMasivaPage() {
                                 { label: 'FALLIDOS / ERRORES', value: resumen.errores, icon: XCircle, color: 'rose' }
                             ].map((stat, i) => (
                                 <div key={i} className={cn(
-                                    "p-6 rounded-[30px] border flex flex-col items-center justify-center gap-2 transition-all hover:scale-105",
-                                    stat.color === 'slate' ? "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700" :
-                                        stat.color === 'emerald' ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-800" :
-                                            "bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-800"
+                                    "p-8 rounded-[32px] border flex flex-col items-center justify-center gap-3 transition-all hover:translate-y-[-4px]",
+                                    stat.color === 'slate' ? "bg-white dark:bg-slate-800 border-slate-100" :
+                                        stat.color === 'emerald' ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100/50" :
+                                            "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100/50"
                                 )}>
-                                    <stat.icon className={cn("h-6 w-6 mb-1",
-                                        stat.color === 'slate' ? "text-slate-400" :
-                                            stat.color === 'emerald' ? "text-emerald-600" : "text-rose-600"
-                                    )} />
-                                    <p className={cn("text-4xl font-black",
-                                        stat.color === 'slate' ? "text-slate-700 dark:text-slate-200" :
+                                    <div className={cn("p-4 rounded-2xl mb-1 shadow-sm",
+                                        stat.color === 'slate' ? "bg-slate-50 text-slate-400" :
+                                            stat.color === 'emerald' ? "bg-white text-emerald-500" : "bg-white text-rose-500"
+                                    )}>
+                                        <stat.icon className="h-8 w-8" />
+                                    </div>
+                                    <p className={cn("text-5xl font-black tracking-tight",
+                                        stat.color === 'slate' ? "text-slate-800" :
                                             stat.color === 'emerald' ? "text-emerald-700" : "text-rose-700"
                                     )}>{stat.value}</p>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">{stat.label}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
                                 </div>
                             ))}
                         </div>
 
-                        {/* BARRA DE PROGRESO PREMIUM */}
-                        <div className="space-y-3">
+                        {/* ESTADO FINAL DE LA CARGA */}
+                        <div className="space-y-4 bg-white dark:bg-slate-800/50 p-6 rounded-[32px] border border-slate-100 shadow-inner">
                             <div className="flex items-center justify-between px-2">
-                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Estado de Carga</span>
-                                <span className="text-sm font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950 px-3 py-1 rounded-full">{porcentajeExito}% COMPLETADO</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resumen de Integridad</span>
+                                <Badge className={cn("h-7 px-4 rounded-full font-black text-[10px]",
+                                    porcentajeExito === 100 ? "bg-emerald-500" : "bg-amber-500"
+                                )}>
+                                    {porcentajeExito}% DE LOS DATOS CORRECTOS
+                                </Badge>
                             </div>
-                            <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-1 shadow-inner">
+                            <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-1000 shadow-lg shadow-emerald-500/50"
+                                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-1000"
                                     style={{ width: `${porcentajeExito}%` }}
                                 />
                             </div>
