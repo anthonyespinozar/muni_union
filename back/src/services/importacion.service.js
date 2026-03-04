@@ -54,6 +54,8 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
         try {
             await client.query("BEGIN");
 
+            console.log(`Procesando fila ${rowNum}:`, fila);
+
             // ── Validar campos obligatorios ───────────────────────────────────
             const obligatorios = [
                 "nombres", "apellido_paterno", "apellido_materno",
@@ -61,6 +63,7 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
             ];
             const faltantes = obligatorios.filter(campo => !fila[campo] || fila[campo] === "");
             if (faltantes.length > 0) {
+                console.error(`Fila ${rowNum} ignorada por campos obligatorios faltantes:`, faltantes);
                 throw new Error(`Campos obligatorios vacíos: ${faltantes.join(", ")}`);
             }
 
@@ -100,6 +103,19 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
             }
 
             if (!personaId) {
+                // Mapeo de nombres comunes a nombres oficiales en la tabla tipos_documento
+                const docMap = {
+                    "DNI": "DNI",
+                    "P. NACIMIENTO": "PART. NACIMIENTO",
+                    "PARTIDA NACIMIENTO": "PART. NACIMIENTO",
+                    "PART. NAC": "PART. NACIMIENTO",
+                    "CARNET": "CARNET EXTR.",
+                    "CE": "CARNET EXTR.",
+                    "PASAPORTE": "PASAPORTE"
+                };
+                let tipoDocFinal = fila.tipo_documento?.trim().toUpperCase() || "DNI";
+                if (docMap[tipoDocFinal]) tipoDocFinal = docMap[tipoDocFinal];
+
                 // La tabla personas tiene: dni, tipo_documento, nombres, apellido_paterno,
                 // apellido_materno, sexo, fecha_nacimiento, telefono, direccion, observaciones, usuario_registro
                 const nuevaPersona = await client.query(
@@ -110,15 +126,15 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
                      RETURNING id`,
                     [
                         fila.dni?.trim() || null,
-                        fila.tipo_documento?.trim() || "DNI",
+                        tipoDocFinal,
                         fila.nombres.trim().toUpperCase(),
                         fila.apellido_paterno.trim().toUpperCase(),
                         fila.apellido_materno.trim().toUpperCase(),
-                        fila.sexo?.trim().toUpperCase() || "M",
+                        fila.sexo?.trim().substring(0, 1).toUpperCase() || "M", // Asegurar char(1)
                         fechaNacimiento,
                         fila.telefono?.trim() || null,
                         null,                                            // direccion (no en plantilla)
-                        fila.persona_observaciones?.trim() || null,      // campo correcto ✓
+                        fila.persona_observaciones?.trim() || null,
                         usuario_id
                     ]
                 );
@@ -146,7 +162,7 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
                     anioActa,
                     personaId,
                     fechaActa,
-                    fila.acta_observaciones?.trim() || null,    // campo correcto ✓
+                    fila.acta_observaciones?.trim() || null,
                     usuario_id
                 ]
             );
@@ -166,6 +182,13 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
             }
 
             if (archivoEncontrado) {
+                // El tipo_archivo en la BD es varchar(10). 
+                // Si mimetype es application/pdf (15 chars), fallará.
+                let tipoArchivo = archivoEncontrado.mimetype;
+                if (tipoArchivo.includes("pdf")) tipoArchivo = "PDF";
+                else if (tipoArchivo.includes("image")) tipoArchivo = "IMG";
+                if (tipoArchivo.length > 10) tipoArchivo = tipoArchivo.substring(0, 10);
+
                 await client.query(
                     `INSERT INTO documentos_digitales
                        (acta_id, nombre_archivo, ruta_archivo, tipo_archivo, hash_archivo, usuario_registro)
@@ -174,7 +197,7 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
                         actaId,
                         archivoEncontrado.originalname,
                         archivoEncontrado.path,
-                        archivoEncontrado.mimetype,
+                        tipoArchivo,
                         crypto.createHash("md5").update(fs.readFileSync(archivoEncontrado.path)).digest("hex"),
                         usuario_id
                     ]
@@ -194,6 +217,7 @@ export const importarActasMasivo = async (filas, archivosMap, soloNombreMap, usu
 
         } catch (error) {
             await client.query("ROLLBACK");
+            console.error(`Error procesando fila ${rowNum}:`, error); // LOG CRÍTICO
             resultados.push({
                 fila: rowNum,
                 estado: "ERROR",

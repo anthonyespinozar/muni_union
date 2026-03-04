@@ -60,12 +60,16 @@ const parsearExcel = (rutaArchivo) => {
         );
     }
 
-    // Limpiar encabezados: quitar " *", normalizar espacios
-    const headers = rawRows[headerRowIndex].map(h =>
-        String(h).trim().toLowerCase()
-            .replace(/ \*/g, "")
-            .replace(/\s+/g, "_")
-    );
+    // Limpiar encabezados: quitar "*" (obligatorio), espacios extra y normalizar
+    const headers = rawRows[headerRowIndex].map(h => {
+        let clean = String(h || "").trim();
+        clean = clean.replace(/\*/g, ""); // Quitar todos los asteriscos
+        clean = clean.replace(/\(.*\)/g, ""); // Quitar lo que esté en paréntesis
+        clean = clean.trim().toLowerCase().replace(/\s+/g, "_");
+        return clean;
+    });
+
+    console.log("Headers detectados:", headers);
 
     const dataRows = rawRows.slice(headerRowIndex + 1);
 
@@ -74,7 +78,7 @@ const parsearExcel = (rutaArchivo) => {
     const toStr = (val) => {
         if (val === null || val === undefined) return "";
         if (val instanceof Date) {
-            // Date object → ISO YYYY-MM-DD (usar UTC para evitar desfase de zona horaria)
+            // Date object -> ISO YYYY-MM-DD (usar UTC para evitar desfase de zona horaria)
             const y = val.getUTCFullYear();
             const m = String(val.getUTCMonth() + 1).padStart(2, "0");
             const d = String(val.getUTCDate()).padStart(2, "0");
@@ -83,10 +87,12 @@ const parsearExcel = (rutaArchivo) => {
         return String(val).trim();
     };
 
-    return dataRows
-        .map(row => {
+    const parsed = dataRows
+        .map((row, idx) => {
             const obj = {};
-            headers.forEach((h, i) => { obj[h] = toStr(row[i]); });
+            headers.forEach((h, i) => { if (h) obj[h] = toStr(row[i]); });
+            // Si es la primera fila de datos, logearla para ver si coincide
+            if (idx === 0) console.log("Ejemplo de fila parseada:", obj);
             return obj;
         })
         .filter(f => f.nombres || f.apellido_paterno)
@@ -96,6 +102,8 @@ const parsearExcel = (rutaArchivo) => {
             if (f.tipo_documento) f.tipo_documento = f.tipo_documento.trim();
             return f;
         });
+
+    return parsed;
 };
 
 // ─── Helper: Extraer ZIP preservando ESTRUCTURA DE CARPETAS ──────────────────
