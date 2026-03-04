@@ -40,6 +40,13 @@ const ejemplos = [
         carpeta_ruta: 'prueba/matrimonios/LIBRO 1', nombre_archivo_pdf: 'Documento 2.pdf'
     },
     {
+        tipo_documento: 'DNI', dni: '30405060',
+        nombres: 'PEDRO PABLO', apellido_paterno: 'VILLANUEVA', apellido_materno: 'CASTRO',
+        sexo: 'M', fecha_nacimiento: '1950-01-01', telefono: '', persona_observaciones: 'Fallecido',
+        tipo_acta: 'DEFUNCION', libro: '10', numero_acta: '77', anio: '2023', fecha_acta: '2023-11-20', acta_observaciones: '',
+        carpeta_ruta: 'prueba/defunciones/LIBRO 1', nombre_archivo_pdf: 'Documento 1.pdf'
+    },
+    {
         tipo_documento: 'P. NACIMIENTO', dni: '',
         nombres: 'BEBE REGISTRADO', apellido_paterno: 'CUEVA', apellido_materno: 'SOTO',
         sexo: 'M', fecha_nacimiento: '2024-02-10', telefono: '', persona_observaciones: 'Sin DNI por ser menor',

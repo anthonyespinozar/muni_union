@@ -123,14 +123,13 @@ export function NuevaSolicitudForm({
     }
 
     async function buscarActas(valor: string) {
-        if (!valor) {
+        if (!valor.trim()) {
             setActasBusqueda([]);
             return;
         }
         if (valor.length < 2) return;
         setLoadingActas(true);
         try {
-            // Usamos el nuevo parámetro 'q' para búsqueda global
             const res = await actasService.getAll({
                 q: valor,
                 limit: 20
@@ -192,7 +191,8 @@ export function NuevaSolicitudForm({
         }
     }
 
-    const total = form.watch("detalles").reduce((acc, curr) => acc + (curr.cantidad * curr.precio_unitario), 0);
+    const watchedDetalles = form.watch("detalles");
+    const total = watchedDetalles.reduce((acc, curr) => acc + (Number(curr.cantidad || 0) * Number(curr.precio_unitario || 0)), 0);
 
     return (
         <Card className="animate-in fade-in zoom-in-95 duration-300 border-border overflow-hidden shadow-md">
@@ -408,8 +408,8 @@ export function NuevaSolicitudForm({
                                                 <thead className="bg-muted/50 border-b border-border">
                                                     <tr>
                                                         <th className="p-3 text-left font-bold text-muted-foreground uppercase tracking-widest text-[9px]">Documento</th>
-                                                        <th className="p-3 text-center w-20 font-bold text-muted-foreground uppercase tracking-widest text-[9px]">Cant.</th>
-                                                        <th className="p-3 text-center w-20 font-bold text-muted-foreground uppercase tracking-widest text-[9px]">Precio</th>
+                                                        <th className="p-3 text-center w-24 font-bold text-muted-foreground uppercase tracking-widest text-[9px]">Cant.</th>
+                                                        <th className="p-3 text-center w-32 font-bold text-muted-foreground uppercase tracking-widest text-[9px]">Precio</th>
                                                         <th className="p-3 text-center w-10"></th>
                                                     </tr>
                                                 </thead>
@@ -435,18 +435,18 @@ export function NuevaSolicitudForm({
                                                                 <Input
                                                                     type="number"
                                                                     min={1}
-                                                                    className="h-8 text-center font-bold text-xs bg-muted/50 border-border"
+                                                                    className="h-10 text-center font-bold text-[13px] bg-muted/30 border-slate-200 dark:border-slate-800 rounded-xl focus:bg-card transition-all"
                                                                     {...form.register(`detalles.${index}.cantidad`, { valueAsNumber: true })}
                                                                 />
                                                             </td>
                                                             <td className="p-3 py-2">
                                                                 <div className="relative">
-                                                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold">S/</span>
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-primary font-black">S/</span>
                                                                     <Input
                                                                         type="number"
                                                                         min={0}
                                                                         step="0.50"
-                                                                        className="h-8 pl-6 text-center font-bold text-xs border-border"
+                                                                        className="h-10 pl-8 text-center font-bold text-[13px] border-slate-200 dark:border-slate-800 rounded-xl focus:bg-card transition-all"
                                                                         {...form.register(`detalles.${index}.precio_unitario`, { valueAsNumber: true })}
                                                                     />
                                                                 </div>
@@ -526,7 +526,7 @@ export function NuevaSolicitudForm({
                                 <div className="space-y-2">
                                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Resumen del Pedido</p>
                                     <div className="grid grid-cols-1 gap-2">
-                                        {fields.map((f, i) => (
+                                        {watchedDetalles.map((f, i) => (
                                             <div key={i} className="bg-muted border border-border/60 p-3 rounded-xl flex justify-between items-center transition-all hover:bg-card hover:shadow-sm">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center border bg-card ${getBgColor(f.tipo_acta)}`}>
@@ -539,10 +539,10 @@ export function NuevaSolicitudForm({
                                                 </div>
                                                 <div className="flex items-center gap-4 text-right">
                                                     <div className="text-[10px] font-bold text-muted-foreground uppercase tabular-nums">
-                                                        {f.cantidad} x S/ {f.precio_unitario.toFixed(2)}
+                                                        {f.cantidad} x S/ {Number(f.precio_unitario).toFixed(2)}
                                                     </div>
                                                     <div className="h-8 w-14 rounded-lg bg-primary/10 flex items-center justify-center font-black text-primary text-xs border border-primary/20 tabular-nums">
-                                                        S/ {(f.cantidad * f.precio_unitario).toFixed(2)}
+                                                        S/ {(Number(f.cantidad) * Number(f.precio_unitario)).toFixed(2)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -578,19 +578,19 @@ export function NuevaSolicitudForm({
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }
                                 }}
-                                className="px-6 btn-primary text-sm font-bold rounded-lg shadow-sm"
+                                className="h-12 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
                             >
-                                Siguiente Paso <ChevronRight className="ml-2 h-4 w-4" />
+                                SIGUIENTE PASO <ChevronRight className="h-5 w-5" />
                             </Button>
                         ) : (
                             <Button
                                 size="sm"
                                 onClick={form.handleSubmit(onSubmit)}
                                 disabled={submitting}
-                                className="px-8 bg-foreground text-background hover:opacity-90 text-sm font-bold rounded-lg shadow-md gap-2"
+                                className="h-12 px-10 bg-slate-900 dark:bg-slate-50 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold text-xs rounded-2xl shadow-lg transition-all active:scale-95 flex items-center gap-2"
                             >
-                                {submitting ? <Loader2 className="animate-spin h-4 w-4" /> : <Save className="h-4 w-4" />}
-                                Registrar Solicitud
+                                {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <Save className="h-5 w-5" />}
+                                REGISTRAR SOLICITUD
                             </Button>
                         )}
                     </div>

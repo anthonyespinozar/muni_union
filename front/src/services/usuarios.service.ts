@@ -3,7 +3,7 @@ import { Usuario } from "@/types/auth";
 import { UsuarioInput, ChangePasswordInput } from "@/types/usuario";
 
 export const usuariosService = {
-    async listar(filtros: { page?: number; limit?: number } = {}) {
+    async listar(filtros: { page?: number; limit?: number; q?: string } = {}) {
         const { data } = await api.get<{ data: Usuario[]; total: number }>("/usuarios", {
             params: {
                 ...filtros,

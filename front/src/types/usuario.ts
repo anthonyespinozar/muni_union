@@ -5,6 +5,7 @@ export interface UsuarioInput {
     apellidos: string;
     rol_id: number;
     telefono?: string;
+    dni?: string;
     password?: string;
 }
 

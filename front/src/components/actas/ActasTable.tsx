@@ -23,6 +23,9 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { toast } from "sonner";
+import { reportesService } from "@/services/reportes.service";
+import { Loader2 } from "lucide-react";
 
 import {
     Table,
@@ -35,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -43,6 +47,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Acta } from "@/types/acta";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -93,10 +104,33 @@ export function ActasTable({
     const [searchTerm, setSearchTerm] = useState("");
     const [searchNumero, setSearchNumero] = useState("");
     const [searchAnio, setSearchAnio] = useState("");
+    const [searchTipo, setSearchTipo] = useState("TODOS");
+    const [exporting, setExporting] = useState(false);
 
     const debouncedSearch = useDebounce(searchTerm, 500);
     const debouncedNumero = useDebounce(searchNumero, 500);
     const debouncedAnio = useDebounce(searchAnio, 500);
+
+    const handleExport = async () => {
+        setExporting(true);
+        const filters = {
+            tipo: searchTipo !== "TODOS" ? searchTipo : "",
+            anio: searchAnio,
+            numero: searchNumero,
+            q: searchTerm
+        };
+
+        const toastId = toast.loading("Generando Excel de actas...");
+        try {
+            await reportesService.exportActas(filters);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            toast.success("Descarga lista", { id: toastId });
+        } catch (error) {
+            toast.error("Error al generar el reporte", { id: toastId });
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         onSearch({ dni: debouncedSearch });
@@ -109,6 +143,10 @@ export function ActasTable({
     useEffect(() => {
         onSearch({ anio: debouncedAnio });
     }, [debouncedAnio]);
+
+    useEffect(() => {
+        onSearch({ tipo: searchTipo === "TODOS" ? "" : searchTipo });
+    }, [searchTipo]);
 
     const getTipoActaBadge = (tipo: string) => {
         switch (tipo) {
@@ -145,54 +183,78 @@ export function ActasTable({
     };
 
     return (
-        <div className="space-y-4">
-            {/* Standard Search Bar */}
-            <div className="flex flex-col md:flex-row gap-4 bg-card p-4 rounded-xl border border-border shadow-sm items-end">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 w-full">
-                    <div className="relative md:col-span-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
+        <div className="space-y-6">
+            {/* HERRAMIENTAS DE TABLA: FILTROS Y ACCIONES SEPARADOS */}
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
+
+                {/* CONTENEDOR DE FILTROS (70px de alto) */}
+                <div className="flex-1 flex items-center gap-3 bg-card h-[70px] px-5 rounded-2xl border border-border shadow-sm">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std text-slate-400" />
                         <Input
                             placeholder="Buscar por DNI o Nombres..."
-                            className="pl-9 std-input"
+                            className="pl-9 std-input border-none bg-transparent focus-visible:ring-0 h-11 w-full font-semibold"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
                     <Input
-                        placeholder="N° Acta (Ej: NAC-L1-45)"
-                        className="std-input"
+                        placeholder="N° Acta"
+                        className="std-input w-32 border-none bg-transparent focus-visible:ring-0 h-11 font-semibold"
                         value={searchNumero}
                         onChange={(e) => setSearchNumero(e.target.value)}
                     />
                     <Input
                         placeholder="Año"
                         type="number"
-                        className="std-input"
+                        className="std-input w-24 border-none bg-transparent focus-visible:ring-0 h-11 font-semibold"
                         value={searchAnio}
                         onChange={(e) => setSearchAnio(e.target.value)}
                     />
+                    <Select value={searchTipo} onValueChange={setSearchTipo}>
+                        <SelectTrigger className="w-40 border-none bg-transparent focus:ring-0 h-11 text-xs font-bold uppercase truncate">
+                            <SelectValue placeholder="Tipo" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl shadow-xl border-border">
+                            <SelectItem value="TODOS" className="font-medium text-xs">TODOS</SelectItem>
+                            <SelectItem value="NACIMIENTO" className="font-medium text-xs">NACIMIENTO</SelectItem>
+                            <SelectItem value="MATRIMONIO" className="font-medium text-xs">MATRIMONIO</SelectItem>
+                            <SelectItem value="DEFUNCION" className="font-medium text-xs">DEFUNCION</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                        onClick={() => {
+                            setSearchTerm("");
+                            setSearchNumero("");
+                            setSearchAnio("");
+                            setSearchTipo("TODOS");
+                        }}
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 border-dashed border-primary/40 text-primary hover:bg-primary/5 font-bold"
-                        onClick={() => window.open('/templates/plantilla_carga_masiva.xlsx', '_blank')}
-                    >
-                        <Download className="h-4 w-4 mr-2" />
-                        PLANTILLA
-                    </Button>
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="h-9 bg-emerald-600 hover:bg-emerald-700 shadow-sm font-bold"
-                        onClick={() => window.location.href = '/dashboard/digitalizacion/carga-masiva'}
-                    >
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        IMPORTAR
-                    </Button>
-                </div>
+                <Button
+                    variant="default"
+                    className="h-12 px-7 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
+                    onClick={() => window.location.href = '/dashboard/digitalizacion/carga-masiva'}
+                >
+                    <FileSpreadsheet className="h-5 w-5" />
+                    IMPORTAR
+                </Button>
+                <Button
+                    variant="outline"
+                    disabled={exporting}
+                    className="h-12 px-7 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                    onClick={handleExport}
+                >
+                    {exporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                    EXPORTAR
+                </Button>
             </div>
 
             <div className="std-table-container">
@@ -347,4 +409,4 @@ export function ActasTable({
             />
         </div>
     );
-}
+};

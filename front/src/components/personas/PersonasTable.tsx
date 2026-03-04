@@ -65,17 +65,6 @@ export function PersonasTable({
 
     return (
         <div className="space-y-4">
-            {/* Standard Search Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-                <div className="relative flex-1 w-full max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
-                    <Input
-                        placeholder="Buscar por DNI o nombres..."
-                        className="pl-9 std-input"
-                        onChange={(e) => onSearch(e.target.value)}
-                    />
-                </div>
-            </div>
 
             <div className="std-table-container">
                 <Table>

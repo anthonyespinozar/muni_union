@@ -6,6 +6,7 @@ export interface Usuario {
     rol_id: number;
     rol: string;
     telefono?: string;
+    dni?: string;
     activo: boolean;
 }
 

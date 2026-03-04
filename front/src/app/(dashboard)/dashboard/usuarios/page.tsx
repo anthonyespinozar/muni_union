@@ -15,6 +15,9 @@ import { Usuario } from "@/types/auth";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Search, Loader2 } from "lucide-react";
 
 export default function UsuariosPage() {
     const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -27,6 +30,7 @@ export default function UsuariosPage() {
         limit: 10,
         totalPages: 0
     });
+    const [searchTerm, setSearchTerm] = useState("");
 
     const currentUser = useAuthStore((state) => state.usuario);
     const router = useRouter();
@@ -39,11 +43,16 @@ export default function UsuariosPage() {
         }
     }, [currentUser]);
 
-    const fetchUsuarios = async (p?: number) => {
+    const fetchUsuarios = async (p?: number, q?: string) => {
         setIsLoading(true);
         const targetPage = p || pagination.page;
+        const query = q !== undefined ? q : searchTerm;
         try {
-            const response = await usuariosService.listar({ page: targetPage, limit: pagination.limit });
+            const response = await usuariosService.listar({
+                page: targetPage,
+                limit: pagination.limit,
+                q: query
+            });
             setUsuarios(response.data);
             setPagination({
                 ...pagination,
@@ -63,8 +72,11 @@ export default function UsuariosPage() {
     };
 
     useEffect(() => {
-        fetchUsuarios();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchUsuarios(1, searchTerm);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     const handleCreate = () => {
         setEditingUsuario(null);
@@ -144,21 +156,38 @@ export default function UsuariosPage() {
                         Administración de accesos y roles del equipo institucional.
                     </p>
                 </div>
-                <div className="flex gap-3">
+
+                <Button
+                    onClick={handleCreate}
+                    className="h-12 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
+                >
+                    <UserPlus className="h-5 w-5" />
+                    NUEVO USUARIO
+                </Button>
+            </div>
+
+            {/* HERRAMIENTAS DE TABLA: FILTRO BUSCADOR */}
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
+                <div className="flex-1 flex items-center gap-3 bg-card h-[70px] px-5 rounded-2xl border border-border shadow-sm">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std text-slate-400" />
+                        <Input
+                            placeholder="Buscar por DNI, usuario o nombres..."
+                            className="pl-9 std-input border-none bg-transparent focus-visible:ring-0 h-11 w-full font-semibold"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+
                     <Button
-                        variant="outline"
-                        onClick={() => fetchUsuarios()}
-                        disabled={isLoading}
-                        className="btn-std btn-outline h-12 px-4 shadow-sm"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
+                        onClick={() => setSearchTerm("")}
                     >
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    </Button>
-                    <Button
-                        onClick={handleCreate}
-                        className="btn-std btn-primary h-12 px-8 shadow-lg shadow-primary/20"
-                    >
-                        <UserPlus className="h-5 w-5" />
-                        <span className="font-bold uppercase tracking-tight text-xs">Nuevo Usuario</span>
+                        <RefreshCw className="h-4 w-4" />
                     </Button>
                 </div>
             </div>

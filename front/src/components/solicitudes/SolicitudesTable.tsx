@@ -45,7 +45,6 @@ interface SolicitudesTableProps {
     onAtender: (solicitud: Solicitud) => void;
     onAnular: (solicitud: Solicitud) => void;
     onDelete: (solicitud: Solicitud) => void;
-    onSearch?: (value: string) => void;
     pagination: {
         total: number;
         page: number;
@@ -62,7 +61,6 @@ export function SolicitudesTable({
     onAtender,
     onAnular,
     onDelete,
-    onSearch,
     pagination,
     onPageChange
 }: SolicitudesTableProps) {
@@ -83,17 +81,6 @@ export function SolicitudesTable({
 
     return (
         <div className="space-y-4">
-            {/* Standard Search Bar */}
-            <div className="flex items-center gap-4 bg-card p-4 rounded-xl shadow-sm border border-border">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
-                    <Input
-                        placeholder="Buscar por N° Trámite, DNI o apellidos..."
-                        onChange={(e) => onSearch?.(e.target.value)}
-                        className="pl-10 std-input"
-                    />
-                </div>
-            </div>
 
             <div className="std-table-container">
                 <Table>

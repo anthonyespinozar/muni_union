@@ -10,7 +10,7 @@ import {
     FileText,
     Upload,
     Save,
-    RotateCcw,
+    RefreshCw,
     Loader2,
     CheckCircle2,
     Trash2,
@@ -233,7 +233,8 @@ export default function DigitalizacionPage() {
         form.reset();
         setFile(null);
         setPersonaEncontrada(null);
-        toast.success("Formulario limpiado");
+        setActaEncontrada(null);
+        toast.info("Formulario reiniciado");
     };
 
     const onSubmit = async (values: FormValues) => {
@@ -739,7 +740,7 @@ export default function DigitalizacionPage() {
                                                         e.stopPropagation();
                                                         setFile(null);
                                                     }}
-                                                    className="mt-6 text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-wider h-10 px-4 rounded-xl border border-rose-100"
+                                                    className="mt-6 text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-wider h-10 px-4 rounded-2xl border border-rose-100"
                                                 >
                                                     <Trash2 size={14} className="mr-2" /> Eliminar Archivo
                                                 </Button>
@@ -754,7 +755,7 @@ export default function DigitalizacionPage() {
                                                     onChange={(e) => e.target.files && setFile(e.target.files[0])}
                                                     accept="application/pdf,image/*"
                                                 />
-                                                <Button type="button" variant="outline" className="mt-6 border-border btn-std text-[10px] uppercase font-bold tracking-widest bg-card">
+                                                <Button type="button" variant="outline" className="mt-6 border-slate-200 h-12 px-8 rounded-2xl font-bold uppercase text-[10px] tracking-widest bg-card">
                                                     Examinar Archivos
                                                 </Button>
                                             </>
@@ -792,27 +793,30 @@ export default function DigitalizacionPage() {
                             variant="outline"
                             onClick={resetAll}
                             disabled={loading}
-                            className="flex-1 md:flex-none h-12 px-8 rounded-xl font-bold uppercase text-[11px] tracking-widest border-border hover:bg-muted"
+                            className="flex-1 md:flex-none h-12 px-8 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2"
                         >
-                            <RotateCcw size={16} className="mr-2" /> Limpiar
+                            <RefreshCw size={16} /> REINICIAR
                         </Button>
                         <Button
                             onClick={form.handleSubmit(onSubmit)}
                             disabled={loading}
-                            className="flex-1 md:flex-none h-12 px-10 rounded-xl font-bold uppercase text-[11px] tracking-widest btn-primary shadow-xl shadow-primary/20"
+                            className="flex-1 md:flex-none h-12 px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
                         >
                             {loading ? (
-                                <Loader2 className="animate-spin h-5 w-5" />
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    PROCESANDO...
+                                </>
                             ) : (
                                 <>
-                                    <Save size={18} className="mr-2" />
-                                    Guardar Registro Integral
+                                    <Save className="h-5 w-5" />
+                                    PROCESAR REGISTRO COMPLETO
                                 </>
                             )}
                         </Button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -270,10 +270,10 @@ export default function ActasPage() {
 
                 <Button
                     onClick={() => router.push("/dashboard/digitalizacion")}
-                    className="btn-std btn-primary h-12 px-8 shadow-lg shadow-primary/20"
+                    className="h-12 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
                 >
                     <Plus className="h-5 w-5" />
-                    <span className="font-bold uppercase tracking-tight text-xs">Nueva Digitalización</span>
+                    NUEVA DIGITALIZACIÓN
                 </Button>
             </div>
 

@@ -8,12 +8,9 @@ import {
     Power,
     Edit,
     Trash2,
-    MoreHorizontal,
-    Search
+    MoreHorizontal
 } from "lucide-react";
-import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useState } from "react";
 
 import {
     Table,
@@ -62,13 +59,6 @@ export function UsuariosTable({
     pagination,
     onPageChange
 }: UsuariosTableProps) {
-    const [searchTerm, setSearchTerm] = useState("");
-
-    const filteredUsuarios = usuarios.filter(u =>
-        u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.nombres?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.apellidos?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     const getRolBadge = (rol: string) => {
         const isAdm = rol.toUpperCase().includes('ADMIN');
@@ -80,19 +70,7 @@ export function UsuariosTable({
     };
 
     return (
-        <div className="space-y-4">
-            {/* Standard Search Bar */}
-            <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std" />
-                    <Input
-                        placeholder="Buscar por usuario o nombres..."
-                        className="pl-9 std-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
+        <div className="space-y-4 pt-1">
 
             <div className="std-table-container">
                 <Table>
@@ -112,7 +90,7 @@ export function UsuariosTable({
                                     <TableCell colSpan={5} className="h-16 animate-pulse bg-muted/20" />
                                 </TableRow>
                             ))
-                        ) : filteredUsuarios.length === 0 ? (
+                        ) : usuarios.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-40 text-center">
                                     <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -122,7 +100,7 @@ export function UsuariosTable({
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredUsuarios.map((u) => (
+                            usuarios.map((u) => (
                                 <TableRow key={u.id} className="std-table-row">
                                     <TableCell className="std-table-cell">
                                         <div className="flex flex-col gap-1.5">
@@ -137,9 +115,15 @@ export function UsuariosTable({
                                             <span className="text-foreground tracking-tight py-0.5">
                                                 {u.nombres} {u.apellidos}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                                                <Calendar className="h-3 w-3" /> Registrado
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">
+                                                    {u.dni || "SIN DOCUMENTO"}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground/30">•</span>
+                                                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                                                    Registrado
+                                                </span>
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="std-table-cell">

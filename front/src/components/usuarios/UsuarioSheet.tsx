@@ -40,6 +40,7 @@ const usuarioSchema = z.object({
     apellidos: z.string().min(2, "Apellidos son obligatorios"),
     rol_id: z.string().min(1, "Debe seleccionar un rol"),
     telefono: z.string().optional().nullable().or(z.literal("")),
+    dni: z.string().min(8, "DNI debe tener al menos 8 caracteres").max(15).optional().or(z.literal("")),
     password: z.string().optional().or(z.literal("")),
 });
 
@@ -79,6 +80,7 @@ export function UsuarioSheet({
             apellidos: "",
             rol_id: "2", // DEFAULT: REGISTRADOR
             telefono: "",
+            dni: "",
             password: "",
         },
     });
@@ -108,6 +110,7 @@ export function UsuarioSheet({
                     apellidos: usuario.apellidos || "",
                     rol_id: usuario.rol_id ? usuario.rol_id.toString() : "2",
                     telefono: usuario.telefono || "",
+                    dni: usuario.dni || "",
                     password: "",
                 });
             } else {
@@ -127,6 +130,7 @@ export function UsuarioSheet({
                 apellidos: "",
                 rol_id: "2",
                 telefono: "",
+                dni: "",
                 password: "",
             });
             form.clearErrors();
@@ -148,6 +152,7 @@ export function UsuarioSheet({
                 apellidos: values.apellidos.toUpperCase(),
                 rol_id: parseInt(values.rol_id),
                 telefono: values.telefono || undefined,
+                dni: values.dni || undefined,
                 password: values.password || undefined,
             };
 
@@ -298,6 +303,26 @@ export function UsuarioSheet({
                                     )}
                                 />
                             </div>
+
+                            <FormField
+                                control={form.control}
+                                name="dni"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="std-label mb-1.5">Documento de Identidad (DNI/Otros)</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                value={field.value || ""}
+                                                placeholder="Número de documento..."
+                                                maxLength={15}
+                                                className="std-input h-10 font-bold tracking-widest"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             <div className="py-2">
                                 <Separator className="bg-border/50" />

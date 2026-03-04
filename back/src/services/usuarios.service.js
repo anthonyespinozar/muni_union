@@ -9,7 +9,8 @@ export const crearUsuario = async ({
   nombres,
   apellidos,
   rol_id,
-  telefono
+  telefono,
+  dni
 }) => {
 
   if (!password || !nombres || !apellidos || !rol_id) {
@@ -27,8 +28,8 @@ export const crearUsuario = async ({
   const { rows } = await pool.query(
     `
     INSERT INTO usuarios
-      (username, password_hash, nombres, apellidos, rol_id, telefono)
-    VALUES ($1, $2, $3, $4, $5, $6)
+      (username, password_hash, nombres, apellidos, rol_id, telefono, dni)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING 
       id,
       username,
@@ -36,10 +37,11 @@ export const crearUsuario = async ({
       apellidos,
       rol_id,
       telefono,
+      dni,
       activo,
       fecha_registro
     `,
-    [username, password_hash, nombres, apellidos, rol_id, telefono]
+    [username, password_hash, nombres, apellidos, rol_id, telefono, dni]
   );
 
   return rows[0];
@@ -50,20 +52,28 @@ export const crearUsuario = async ({
    LISTAR USUARIOS
 ============================== */
 export const listarUsuarios = async (filtros = {}) => {
-  const { limit = 10, offset = 0 } = filtros;
+  const { q, limit = 10, offset = 0 } = filtros;
+
+  let whereClause = " WHERE u.fecha_eliminacion IS NULL";
+  const params = [];
+
+  if (q) {
+    params.push(`%${q}%`);
+    whereClause += ` AND (u.username ILIKE $1 OR u.nombres ILIKE $1 OR u.apellidos ILIKE $1 OR u.dni LIKE $1)`;
+  }
 
   const queryBase = `
     FROM usuarios u
     JOIN roles r ON r.id = u.rol_id
-    WHERE u.fecha_eliminacion IS NULL
+    ${whereClause}
   `;
 
   // Obtener total
-  const totalRes = await pool.query(`SELECT COUNT(*) as total ${queryBase}`);
+  const totalRes = await pool.query(`SELECT COUNT(*) as total ${queryBase}`, params);
   const total = parseInt(totalRes.rows[0].total);
 
   // Obtener datos
-  const dataRes = await pool.query(`
+  const dataQuery = `
     SELECT 
       u.id,
       u.username,
@@ -72,12 +82,15 @@ export const listarUsuarios = async (filtros = {}) => {
       u.rol_id,
       r.nombre AS rol,
       u.telefono,
+      u.dni,
       u.activo,
       u.fecha_registro
     ${queryBase}
     ORDER BY u.id
-    LIMIT $1 OFFSET $2
-  `, [limit, offset]);
+    LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+  `;
+
+  const dataRes = await pool.query(dataQuery, [...params, limit, offset]);
 
   return { data: dataRes.rows, total };
 };
@@ -96,6 +109,7 @@ export const obtenerUsuario = async (id) => {
       u.rol_id,
       r.nombre AS rol,
       u.telefono,
+      u.dni,
       u.activo,
       u.fecha_registro
     FROM usuarios u
@@ -120,7 +134,7 @@ export const actualizarUsuario = async (
   id,
   datos
 ) => {
-  const { username, password, nombres, apellidos, rol_id, telefono } = datos;
+  const { username, password, nombres, apellidos, rol_id, telefono, dni } = datos;
 
   const usuarioExistente = await pool.query(
     "SELECT * FROM usuarios WHERE id = $1 AND fecha_eliminacion IS NULL",
@@ -173,8 +187,9 @@ export const actualizarUsuario = async (
       apellidos = COALESCE($4, apellidos),
       rol_id = COALESCE($5, rol_id),
       telefono = $6,
+      dni = $7,
       fecha_modificacion = NOW()
-    WHERE id = $7
+    WHERE id = $8
     RETURNING 
       id,
       username,
@@ -182,6 +197,7 @@ export const actualizarUsuario = async (
       apellidos,
       rol_id,
       telefono,
+      dni,
       activo,
       fecha_modificacion
     `,
@@ -192,6 +208,7 @@ export const actualizarUsuario = async (
       apellidos || null,
       rol_id || null,
       telefono || null,
+      dni || null,
       id
     ]
   );

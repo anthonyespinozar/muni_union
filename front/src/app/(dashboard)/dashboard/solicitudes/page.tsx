@@ -9,12 +9,18 @@ import { SolicitudDetailSheet } from "@/components/solicitudes/SolicitudDetailSh
 import { Button } from "@/components/ui/button";
 import {
     Plus,
-    RefreshCcw,
+    RefreshCw,
     LayoutGrid,
     Trash2,
     Ban,
-    AlertTriangle
+    AlertTriangle,
+    Search,
+    Download
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
+import { reportesService } from "@/services/reportes.service";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -51,8 +57,23 @@ export default function SolicitudesPage() {
     const [motivoAnulacion, setMotivoAnulacion] = useState("");
     const [solicitudToAnular, setSolicitudToAnular] = useState<number | null>(null);
     const [solicitudToEliminar, setSolicitudToEliminar] = useState<number | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     const [q, setQ] = useState("");
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        const toastId = toast.loading("Generando reporte de trámites...");
+        try {
+            await reportesService.exportSolicitudes({ q });
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            toast.success("Descarga lista", { id: toastId });
+        } catch (error) {
+            toast.error("Error al generar el reporte", { id: toastId });
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const fetchSolicitudes = async (p?: number, search?: string) => {
         setIsLoading(true);
@@ -176,38 +197,64 @@ export default function SolicitudesPage() {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10">
+            {/* CABECERA ESTANDARIZADA */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-3 text-foreground">
-                            <div className="bg-primary p-2.5 rounded-xl shadow-primary/20 shadow-lg">
-                                <LayoutGrid className="h-6 w-6 text-white" />
-                            </div>
-                            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Trámites y Certificados</h1>
+                    <div className="flex items-center gap-3 text-foreground">
+                        <div className="bg-primary p-2.5 rounded-xl shadow-primary/20 shadow-lg">
+                            <LayoutGrid className="h-6 w-6 text-white" />
                         </div>
-                        <p className="text-muted-foreground font-medium text-xs ml-1">
-                            Expedición de copias certificadas y certificados oficiales.
-                        </p>
+                        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Trámites y Certificados</h1>
                     </div>
+                    <p className="text-muted-foreground font-medium text-xs ml-1">
+                        Expedición de copias certificadas y certificados oficiales.
+                    </p>
                 </div>
-                <div className="flex gap-2">
+
+                <Button
+                    onClick={() => setView('CREATE')}
+                    className="h-12 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white font-bold text-xs rounded-2xl transition-all active:scale-95 flex items-center gap-2"
+                >
+                    <Plus className="h-5 w-5" />
+                    NUEVA SOLICITUD
+                </Button>
+            </div>
+
+            {/* HERRAMIENTAS DE TABLA: FILTRO BUSCADOR */}
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
+                <div className="flex-1 flex items-center gap-3 bg-card h-[70px] px-5 rounded-2xl border border-border shadow-sm">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std text-slate-400" />
+                        <Input
+                            placeholder="Buscar por N° Trámite, DNI o apellidos..."
+                            className="pl-9 std-input border-none bg-transparent focus-visible:ring-0 h-11 w-full font-semibold"
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                        />
+                    </div>
+
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+
                     <Button
-                        variant="outline"
-                        onClick={() => fetchSolicitudes()}
-                        disabled={isLoading}
-                        className="btn-std btn-outline h-12 px-4 shadow-sm"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setQ("")}
+                        className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
                     >
-                        <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    </Button>
-                    <Button
-                        onClick={() => setView('CREATE')}
-                        className="btn-std btn-primary h-12 px-8 shadow-lg shadow-primary/20"
-                    >
-                        <Plus className="h-5 w-5" />
-                        <span className="font-bold uppercase tracking-tight text-xs">Iniciar Nuevo Trámite</span>
+                        <RefreshCw className="h-4 w-4" />
                     </Button>
                 </div>
+
+                <Button
+                    variant="outline"
+                    disabled={isExporting}
+                    className="h-12 px-7 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                    onClick={handleExport}
+                >
+                    {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                    EXPORTAR
+                </Button>
             </div>
 
             <SolicitudesTable
@@ -217,7 +264,6 @@ export default function SolicitudesPage() {
                 onAtender={(s) => handleAtender(s.id)}
                 onAnular={(s) => handleAnularClick(s.id)}
                 onDelete={(s) => handleEliminarClick(s.id)}
-                onSearch={setQ}
                 pagination={pagination}
                 onPageChange={handlePageChange}
             />
@@ -279,6 +325,6 @@ export default function SolicitudesPage() {
                 cancelText="Cancelar"
                 variant="destructive"
             />
-        </div>
+        </div >
     );
 }

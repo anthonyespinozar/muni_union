@@ -1,3 +1,0 @@
-﻿tipo_documento;dni;nombres;apellido_paterno;apellido_materno;sexo;fecha_nacimiento;tipo_acta;libro;numero_acta;anio;fecha_registro_acta;nombre_archivo_pdf;observaciones
-DNI;70654321;JUAN ALBERTO;PEREZ;GARCIA;M;1990-05-15;NACIMIENTO;1;45;1990;1990-06-20;NAC-L1-45.pdf;Carga inicial masiva
-DNI;10203040;MARIA ELENA;LOPEZ;ROJAS;F;1985-10-25;MATRIMONIO;2;128;2010;2010-12-15;MAT-L2-128.pdf;Registro de libro antiguo

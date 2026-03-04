@@ -8,9 +8,13 @@ import {
     Search,
     Database,
     ArrowUpRight,
-    Filter
+    Filter,
+    Download
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { reportesService } from "@/services/reportes.service";
 import { auditoriaService } from "@/services/auditoria.service";
 import { AuditoriaTable } from "@/components/auditoria/AuditoriaTable";
 import { Auditoria } from "@/types/auditoria";
@@ -30,7 +34,30 @@ export default function AuditoriaPage() {
     const router = useRouter();
     const currentUser = useAuthStore((state) => state.usuario);
     const [logs, setLogs] = useState<Auditoria[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAnularDialogOpen, setIsAnularDialogOpen] = useState(false);
+    const [exporting, setExporting] = useState(false); // Added
+
+    const handleExport = async () => {
+        setExporting(true);
+        // Limpiamos los filtros "all" para el backend
+        const cleanFilters = {
+            ...filtros,
+            tabla: filtros.tabla === "all" ? "" : filtros.tabla,
+            operacion: filtros.operacion === "all" ? "" : filtros.operacion
+        };
+
+        const toastId = toast.loading("Generando reporte de auditoría...");
+        try {
+            await reportesService.exportAuditoria(cleanFilters);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            toast.success("Descarga lista", { id: toastId });
+        } catch (error) {
+            toast.error("No se pudo generar el reporte", { id: toastId });
+        } finally {
+            setExporting(false);
+        }
+    };
     const [pagination, setPagination] = useState({
         total: 0,
         page: 1,
@@ -57,8 +84,9 @@ export default function AuditoriaPage() {
     }, [currentUser, router]);
 
     const fetchLogs = useCallback(async () => {
-        setLoading(true);
+        setIsLoading(true);
         try {
+            // ... resto del código que usa fetchLogs
             const params: any = {
                 ...filtros,
                 offset: (filtros.page - 1) * filtros.limit
@@ -82,7 +110,7 @@ export default function AuditoriaPage() {
         } catch (error) {
             toast.error("Error al cargar registros de auditoría");
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     }, [filtros]);
 
@@ -113,193 +141,128 @@ export default function AuditoriaPage() {
     if (currentUser?.rol_id !== 1) return null;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-
-            {/* ================= HEADER ================= */}
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* CABECERA ESTANDARIZADA */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-
                 <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <div className="
-          bg-primary/90 
-          p-2.5 
-          rounded-xl 
-          shadow-md
-        ">
-                            <HistoryIcon className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-3 text-foreground">
+                        <div className="bg-primary p-2.5 rounded-xl shadow-primary/20 shadow-lg">
+                            <HistoryIcon className="h-6 w-6 text-white" />
                         </div>
-
-                        <div>
-                            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
-                                Bitácora de Auditoría
-                            </h1>
-                            <p className="text-muted-foreground text-xs font-medium">
-                                Control histórico de operaciones y seguridad del sistema.
-                            </p>
-                        </div>
+                        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Bitácora de Auditoría</h1>
                     </div>
+                    <p className="text-muted-foreground font-medium text-xs ml-1">
+                        Control histórico de operaciones y seguridad del sistema.
+                    </p>
                 </div>
-
             </div>
 
-            {/* ================= FILTROS ================= */}
-            <div className="
-    grid grid-cols-1 md:grid-cols-5 gap-4
-    bg-card 
-    p-5
-    rounded-2xl 
-    border border-border
-    shadow-sm
-  ">
+            {/* HERRAMIENTAS DE TABLA: FILTROS Y ACCIONES SEPARADOS */}
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
 
-                {/* Usuario */}
-                <div className="md:col-span-1 space-y-1.5">
-                    <label className="std-label">Usuario</label>
-                    <div className="relative group">
-                        <Search className="
-          absolute left-3 top-1/2 -translate-y-1/2 
-          icon-std 
-          transition-colors 
-          group-focus-within:text-primary
-        " />
+                {/* CONTENEDOR DE FILTROS (70px de alto) */}
+                <div className="flex-1 flex items-center gap-3 bg-card h-[70px] px-5 rounded-2xl border border-border shadow-sm w-full outline-none overflow-x-auto scrollbar-hide">
+
+                    {/* Usuario */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 icon-std text-slate-400" />
                         <Input
-                            placeholder="Ej. admin..."
-                            className="pl-9 std-input"
+                            placeholder="Usuario..."
+                            className="pl-9 std-input border-none bg-transparent focus-visible:ring-0 h-11 w-full font-semibold"
                             value={filtros.usuario}
-                            onChange={(e) =>
-                                setFiltros(prev => ({ ...prev, usuario: e.target.value, page: 1 }))
-                            }
+                            onChange={(e) => setFiltros(prev => ({ ...prev, usuario: e.target.value, page: 1 }))}
                         />
                     </div>
-                </div>
 
-                {/* Desde */}
-                <div className="md:col-span-1 space-y-1.5">
-                    <label className="std-label">Desde</label>
-                    <div className="relative group">
-                        <CalendarIcon className="
-          absolute left-3 top-1/2 -translate-y-1/2 
-          icon-std 
-          transition-colors 
-          group-focus-within:text-primary
-        " />
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+
+                    {/* Rango de Fechas */}
+                    <div className="flex items-center gap-2">
                         <Input
                             type="date"
-                            className="pl-9 std-input"
+                            className="std-input border-none bg-transparent focus-visible:ring-0 h-11 w-36 text-xs p-0 font-semibold"
                             value={filtros.fechaInicio}
-                            onChange={(e) =>
-                                setFiltros(prev => ({ ...prev, fechaInicio: e.target.value, page: 1 }))
-                            }
+                            onChange={(e) => setFiltros(prev => ({ ...prev, fechaInicio: e.target.value, page: 1 }))}
                         />
-                    </div>
-                </div>
-
-                {/* Hasta */}
-                <div className="md:col-span-1 space-y-1.5">
-                    <label className="std-label">Hasta</label>
-                    <div className="relative group">
-                        <CalendarIcon className="
-          absolute left-3 top-1/2 -translate-y-1/2 
-          icon-std 
-          transition-colors 
-          group-focus-within:text-primary
-        " />
+                        <span className="text-slate-300 text-xs">→</span>
                         <Input
                             type="date"
-                            className="pl-9 std-input"
+                            className="std-input border-none bg-transparent focus-visible:ring-0 h-11 w-36 text-xs p-0 font-semibold"
                             value={filtros.fechaFin}
-                            onChange={(e) =>
-                                setFiltros(prev => ({ ...prev, fechaFin: e.target.value, page: 1 }))
-                            }
+                            onChange={(e) => setFiltros(prev => ({ ...prev, fechaFin: e.target.value, page: 1 }))}
                         />
                     </div>
-                </div>
 
-                {/* Módulo */}
-                <div className="md:col-span-1 space-y-1.5">
-                    <label className="std-label">Módulo</label>
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+
+                    {/* Módulo */}
                     <Select
                         value={filtros.tabla}
-                        onValueChange={(v) =>
-                            setFiltros(prev => ({ ...prev, tabla: v, page: 1 }))
-                        }
+                        onValueChange={(v) => setFiltros(prev => ({ ...prev, tabla: v, page: 1 }))}
                     >
-                        <SelectTrigger className="std-input">
-                            <SelectValue placeholder="Seleccionar..." />
+                        <SelectTrigger className="w-40 border-none bg-transparent focus:ring-0 h-11 text-xs font-bold uppercase truncate">
+                            <SelectValue placeholder="Módulo" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border shadow-lg">
-                            <SelectItem value="all">Todos los módulos</SelectItem>
-                            <SelectItem value="actas">Actas</SelectItem>
-                            <SelectItem value="usuarios">Usuarios</SelectItem>
-                            <SelectItem value="personas">Personas</SelectItem>
-                            <SelectItem value="solicitudes">Solicitudes</SelectItem>
+                            <SelectItem value="all">TODOS</SelectItem>
+                            <SelectItem value="actas">ACTAS</SelectItem>
+                            <SelectItem value="usuarios">USUARIOS</SelectItem>
+                            <SelectItem value="personas">PERSONAS</SelectItem>
+                            <SelectItem value="solicitudes">SOLICITUDES</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
 
-                {/* Botones */}
-                <div className="md:col-span-1 flex items-end gap-2">
+                    <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
+
                     <Button
-                        variant="outline"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 shrink-0"
                         onClick={resetFiltros}
-                        className="
-          flex-1 h-10 
-          rounded-xl 
-          text-xs 
-          font-semibold 
-          uppercase 
-          tracking-wide
-        "
                     >
-                        <RefreshCw size={14} />
-                    </Button>
-
-                    <Button
-                        onClick={fetchLogs}
-                        disabled={loading}
-                        className="
-          flex-1 h-10 
-          rounded-xl 
-          text-xs 
-          font-semibold 
-          uppercase 
-          tracking-wide
-          shadow-sm
-        "
-                    >
-                        {loading
-                            ? <RefreshCw className="h-4 w-4 animate-spin" />
-                            : 'Actualizar'}
+                        <RefreshCw className="h-4 w-4" />
                     </Button>
                 </div>
 
+                <Button
+                    variant="outline"
+                    disabled={exporting}
+                    className="h-12 px-7 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-2xl shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                    onClick={handleExport}
+                >
+                    {exporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                    EXPORTAR
+                </Button>
             </div>
 
+
             {/* ================= RESUMEN ================= */}
-            {!loading && (
-                <div className="
+            {
+                !isLoading && (
+                    <div className="
       flex items-center gap-2 
       px-1 
       text-muted-foreground
       text-xs
       font-medium
     ">
-                    <Filter className="h-3.5 w-3.5" />
-                    <span>
-                        Mostrando {filtros.limit} por página • Total: {pagination.total} registros
-                    </span>
-                </div>
-            )}
+                        <Filter className="h-3.5 w-3.5" />
+                        <span>
+                            Mostrando {filtros.limit} por página • Total: {pagination.total} registros
+                        </span>
+                    </div>
+                )
+            }
 
             {/* ================= TABLA ================= */}
             <AuditoriaTable
                 logs={logs}
-                isLoading={loading}
+                isLoading={isLoading}
                 pagination={pagination}
                 onPageChange={handlePageChange}
             />
 
-        </div>
+        </div >
 
     );
 }
