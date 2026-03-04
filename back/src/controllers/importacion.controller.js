@@ -40,17 +40,14 @@ const parsearExcel = (rutaArchivo) => {
     const workbook = XLSX.readFile(rutaArchivo);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    // Leer todas las filas como arrays raw
-    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    // cellDates:true → SheetJS entrega fechas como Date objects (no serial numbers)
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", cellDates: true });
 
-    // Buscar la fila que contiene los nombres reales de columna.
-    // Usamos .some() con includes() para detectar "tipo_documento" como SUBCADENA
-    // (maneja casos como "tipo_documento *" o "tipo_documento (requerido)")
+    // Buscar la fila de encabezados (la que contiene "tipo_documento" como subcadena)
     let headerRowIndex = -1;
     for (let i = 0; i < rawRows.length; i++) {
         const rowStr = rawRows[i].map(c => String(c).trim().toLowerCase());
-        const esFila = rowStr.some(c => c.includes("tipo_documento") || c === "nombres");
-        if (esFila) {
+        if (rowStr.some(c => c.includes("tipo_documento") || c === "nombres")) {
             headerRowIndex = i;
             break;
         }
@@ -63,19 +60,33 @@ const parsearExcel = (rutaArchivo) => {
         );
     }
 
-    // Limpiar los encabezados: quitar sufijo ' *', espacios extra y normalizar
+    // Limpiar encabezados: quitar " *", normalizar espacios
     const headers = rawRows[headerRowIndex].map(h =>
         String(h).trim().toLowerCase()
-            .replace(/ \*/g, "")       // quitar " *" de obligatorios
-            .replace(/\s+/g, "_")      // espacios → guion bajo
+            .replace(/ \*/g, "")
+            .replace(/\s+/g, "_")
     );
 
     const dataRows = rawRows.slice(headerRowIndex + 1);
 
+    // Helper: convierte cualquier valor a string limpio
+    // Detecta Date objects y los convierte a YYYY-MM-DD antes de perder el tipo
+    const toStr = (val) => {
+        if (val === null || val === undefined) return "";
+        if (val instanceof Date) {
+            // Date object → ISO YYYY-MM-DD (usar UTC para evitar desfase de zona horaria)
+            const y = val.getUTCFullYear();
+            const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+            const d = String(val.getUTCDate()).padStart(2, "0");
+            return `${y}-${m}-${d}`;
+        }
+        return String(val).trim();
+    };
+
     return dataRows
         .map(row => {
             const obj = {};
-            headers.forEach((h, i) => { obj[h] = String(row[i] ?? "").trim(); });
+            headers.forEach((h, i) => { obj[h] = toStr(row[i]); });
             return obj;
         })
         .filter(f => f.nombres || f.apellido_paterno)
