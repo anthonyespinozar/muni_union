@@ -268,9 +268,18 @@ export function SolicitudDetailSheet({
                 </div>
 
                 {/* Footer unificado */}
-                <div className="p-5 border-t bg-background">
+                <div className="p-5 border-t bg-background space-y-3">
+                    {/* Botón de Impresión - Siempre disponible */}
+                    <Button
+                        variant="outline"
+                        className="w-full h-11 rounded-xl font-bold uppercase text-[11px] tracking-widest text-slate-600 hover:bg-slate-50 border-slate-200"
+                        onClick={() => window.open(`/print/solicitud/${solicitud.id}`, '_blank')}
+                    >
+                        <Printer size={16} className="mr-2" /> Imprimir Documento / Cargo
+                    </Button>
+
                     <div className="flex gap-4">
-                        {solicitud.estado === 'PENDIENTE' ? (
+                        {solicitud.estado === 'PENDIENTE' && (
                             <>
                                 <Button
                                     variant="outline"
@@ -288,13 +297,13 @@ export function SolicitudDetailSheet({
                                     <CheckCircle2 size={16} className="mr-2" /> Atender
                                 </Button>
                             </>
-                        ) : (
-                            <Button
-                                className="flex-1 h-12 rounded-xl font-bold uppercase text-[11px] tracking-widest btn-primary shadow-lg shadow-primary/20 gap-3"
-                                onClick={() => window.print()}
-                            >
-                                <Printer size={18} /> Imprimir Constancia
-                            </Button>
+                        )}
+
+                        {solicitud.estado !== 'PENDIENTE' && (
+                            <div className="w-full text-center p-3 bg-muted rounded-xl border border-dashed border-border flex items-center justify-center gap-2">
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Trámite Finalizado:</span>
+                                {getStatusBadge(solicitud.estado)}
+                            </div>
                         )}
                     </div>
                 </div>

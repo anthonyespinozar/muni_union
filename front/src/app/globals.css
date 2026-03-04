@@ -217,3 +217,61 @@
 .badge-std {
   @apply px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border;
 }
+
+/* ═══ PRINT UTILITIES ═══ */
+@media print {
+
+  /* Ocultar todo por defecto usando visibilidad para no romper layouts */
+  body {
+    visibility: hidden !important;
+    background: white !important;
+  }
+
+  /* Mostrar solo el contenedor de impresión y sus hijos */
+  .print-container,
+  .print-container * {
+    visibility: visible !important;
+  }
+
+  /* Posicionar el contenedor al inicio de la página de impresión */
+  .print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Ocultar elementos específicos que no deben salir en papel */
+  .no-print,
+  .print-hidden,
+  button,
+  .fixed,
+  .absolute.print-hidden {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  html,
+  body {
+    overflow: visible !important;
+    height: auto !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Forzar colores de fondo y texto para impresión */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

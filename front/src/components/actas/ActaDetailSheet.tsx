@@ -221,7 +221,11 @@ export function ActaDetailSheet({ isOpen, onClose, acta, onEdit }: ActaDetailShe
                 {/* Footer */}
                 <div className="p-6 border-t bg-background">
                     <div className="flex gap-4">
-                        <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold uppercase text-[11px] tracking-widest" onClick={() => window.print()}>
+                        <Button
+                            variant="outline"
+                            className="flex-1 h-12 rounded-xl font-bold uppercase text-[11px] tracking-widest text-slate-600 hover:bg-slate-50 border-slate-200"
+                            onClick={() => window.open(`/print/acta/${acta.id}`, '_blank')}
+                        >
                             <Printer className="h-4 w-4 mr-2" /> Imprimir
                         </Button>
                         <Button
